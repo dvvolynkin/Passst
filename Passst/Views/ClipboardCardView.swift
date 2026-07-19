@@ -6,6 +6,7 @@ struct ClipboardCardView: View {
     @Bindable var model: AppModel
     let record: ClipboardRecord
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
     @State private var renamePresented = false
     @State private var renameTitle = ""
@@ -21,34 +22,41 @@ struct ClipboardCardView: View {
     }
 
     private var accent: Color {
-        if let category = model.category(for: record) {
-            return Color(categoryHex: category.colorHex)
-        }
-        return Color(
-            nsColor: AppIconProvider.shared.accentColor(
-                bundleIdentifier: record.sourceBundleIdentifier,
-                fallback: record.kind.fallbackAccent
-            )
-        )
+        record.kind.cardAccent
+    }
+
+    private var headerTextColor: Color {
+        record.kind.prefersDarkHeaderText
+            ? Color.black.opacity(0.86)
+            : Color.white.opacity(0.98)
     }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: 52)
+                .frame(height: PassstStyle.cardHeaderHeight)
             content
                 .frame(maxWidth: .infinity)
-                .frame(height: 168)
-        }
-        .frame(width: 236, height: 220)
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(
-                    isSelected ? Color.accentColor : Color.white.opacity(0.18),
-                    lineWidth: isSelected ? 4 : 0.8
+                .frame(
+                    height: PassstStyle.cardHeight - PassstStyle.cardHeaderHeight
                 )
+        }
+        .frame(width: PassstStyle.cardWidth, height: PassstStyle.cardHeight)
+        .background(cardBackground)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: PassstStyle.cardCornerRadius,
+                style: .continuous
+            )
+        )
+        .overlay {
+            if isSelected {
+                RoundedRectangle(
+                    cornerRadius: PassstStyle.cardCornerRadius,
+                    style: .continuous
+                )
+                .stroke(Color.accentColor, lineWidth: 2.5)
+            }
         }
         .overlay(alignment: .topTrailing) {
             applicationIconNotch
@@ -56,23 +64,27 @@ struct ClipboardCardView: View {
         .overlay(alignment: .topLeading) {
             if let selectionIndex, model.selection.orderedIDs.count > 1 {
                 selectionBadge(selectionIndex)
-                    .offset(x: -7, y: -7)
+                    .offset(x: -3, y: -3)
                     .transition(.scale(scale: 0.45).combined(with: .opacity))
             }
         }
         .shadow(
-            color: .black.opacity(isSelected ? 0.29 : (isHovered ? 0.22 : 0.15)),
-            radius: isSelected ? 14 : 9,
-            y: isSelected ? 7 : 5
+            color: .black.opacity(isHovered ? 0.18 : 0.13),
+            radius: isHovered ? 14 : 10,
+            y: isHovered ? 7 : 5
         )
-        .scaleEffect(isSelected ? 1.007 : (isHovered ? 1.004 : 1))
-        .offset(y: isHovered ? -1 : 0)
+        .offset(y: isHovered ? -2 : 0)
         .animation(.smooth(duration: 0.12), value: isHovered)
         .animation(
             model.reduceMotion ? .easeOut(duration: 0.1) : .smooth(duration: 0.16),
             value: isSelected
         )
-        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .contentShape(
+            RoundedRectangle(
+                cornerRadius: PassstStyle.cardCornerRadius,
+                style: .continuous
+            )
+        )
         .onHover { hovering in
             isHovered = hovering
         }
@@ -207,44 +219,29 @@ struct ClipboardCardView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(record.displayTitle)
-                .font(.system(size: 12.5, weight: .bold))
-                .foregroundStyle(.primary.opacity(0.88))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(headerTextColor)
                 .lineLimit(1)
-                .padding(.trailing, 48)
+                .minimumScaleFactor(0.9)
+                .help(record.displayTitle)
 
             HStack(alignment: .center, spacing: 5) {
-                Image(systemName: record.kind.symbolName)
-                    .font(.system(size: 9, weight: .bold))
                 Text(record.kind.title)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 12, weight: .regular))
 
                 Text("·")
-                    .foregroundStyle(.secondary)
 
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    Text(compactAge(at: context.date))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 44)
+                Text(compactAge(at: .now))
+                    .font(.system(size: 12, weight: .regular))
             }
-            .foregroundStyle(accent)
+            .foregroundStyle(headerTextColor.opacity(0.84))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
-        .background(
-            LinearGradient(
-                colors: [
-                    accent.opacity(0.21),
-                    accent.opacity(0.075)
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
+        .padding(.leading, 16)
+        .padding(.trailing, 48)
+        .background(accent)
     }
 
     private func compactAge(at now: Date) -> String {
@@ -295,30 +292,24 @@ struct ClipboardCardView: View {
     }
 
     private var cardBackground: some View {
-        ZStack {
-            Color(nsColor: .controlBackgroundColor)
-                .opacity(0.94)
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.13),
-                    Color.black.opacity(0.018)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        colorScheme == .dark
+            ? Color(red: 0.135, green: 0.14, blue: 0.155)
+            : Color.white.opacity(0.97)
     }
 
     private var applicationIconNotch: some View {
         ZStack {
             UnevenRoundedRectangle(
-                topLeadingRadius: 7,
-                bottomLeadingRadius: 15,
-                bottomTrailingRadius: 7,
-                topTrailingRadius: 17
+                topLeadingRadius: 0,
+                bottomLeadingRadius: 16,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: PassstStyle.cardCornerRadius
             )
-            .fill(Color(nsColor: .windowBackgroundColor).opacity(0.82))
-            .shadow(color: .black.opacity(0.1), radius: 3, x: -1, y: 2)
+            .fill(
+                colorScheme == .dark
+                    ? Color(red: 0.135, green: 0.14, blue: 0.155)
+                    : Color.white.opacity(0.96)
+            )
 
             if let icon = AppIconProvider.shared.icon(
                 bundleIdentifier: record.sourceBundleIdentifier
@@ -326,29 +317,24 @@ struct ClipboardCardView: View {
                 Image(nsImage: icon)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
             } else {
                 Image(systemName: "app.fill")
-                    .font(.system(size: 23))
+                    .font(.system(size: 20))
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(width: 49, height: 49)
-        .padding(.top, 2)
-        .padding(.trailing, 2)
+        .frame(width: 44, height: PassstStyle.cardHeaderHeight)
         .help(record.sourceApplicationName ?? "Unknown application")
     }
 
     private func selectionBadge(_ number: Int) -> some View {
         Text("\(number)")
-            .font(.system(size: 11, weight: .heavy, design: .rounded))
+            .font(.system(size: 10.5, weight: .bold, design: .rounded))
             .foregroundStyle(.white)
-            .frame(minWidth: 23, minHeight: 23)
+            .frame(minWidth: 20, minHeight: 20)
             .background(Color.accentColor, in: Circle())
-            .overlay {
-                Circle().stroke(.white.opacity(0.92), lineWidth: 2)
-            }
-            .shadow(color: .black.opacity(0.24), radius: 5, y: 2)
+            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
             .animation(
                 model.reduceMotion
                     ? .easeOut(duration: 0.1)
@@ -362,16 +348,27 @@ private struct TextCardContent: View {
     let record: ClipboardRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(record.previewText)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(bodyText)
                 .font(.system(size: 13.5, weight: .regular, design: .default))
-                .lineSpacing(2.6)
-                .lineLimit(7)
+                .lineSpacing(2)
+                .lineLimit(8)
                 .foregroundStyle(.primary.opacity(0.88))
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(16)
+    }
+
+    private var bodyText: String {
+        let preview = record.previewText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard preview.hasPrefix(record.displayTitle) else {
+            return preview
+        }
+        let remainder = preview
+            .dropFirst(record.displayTitle.count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return remainder.isEmpty ? preview : remainder
     }
 }
 
@@ -394,7 +391,7 @@ private struct RichTextCardContent: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
-        .padding(14)
+        .padding(16)
         .task(id: "\(record.id.uuidString)#\(model.mediaRefreshGeneration)") {
             do {
                 let payload = try await model.payload(for: record)
@@ -418,14 +415,13 @@ private struct CodeCardContent: View {
                 Text(highlighted)
             } else {
                 Text(record.previewText)
-                    .font(.system(size: 11.5, design: .monospaced))
+                    .font(.system(size: 12.5, design: .monospaced))
             }
         }
-        .lineSpacing(2.8)
-        .lineLimit(10)
+        .lineSpacing(2)
+        .lineLimit(9)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 13)
-        .padding(.vertical, 12)
+        .padding(14)
         .background(
             colorScheme == .dark
                 ? Color.black.opacity(0.18)
@@ -435,7 +431,7 @@ private struct CodeCardContent: View {
             highlighted = await CodeHighlighter.highlight(
                 record.previewText,
                 darkMode: colorScheme == .dark,
-                fontSize: 11.5
+                fontSize: 12.5
             )
         }
     }
@@ -448,57 +444,37 @@ private struct LinkPreviewView: View {
     @State private var preview: LinkPreviewData?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 11) {
-            VStack(alignment: .leading, spacing: 7) {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Label {
                     Text(preview?.domain ?? domain)
                         .lineLimit(1)
                 } icon: {
                     Image(systemName: "link")
                 }
-                .font(.system(size: 10.5, weight: .semibold))
+                .font(.system(size: 11.5, weight: .medium))
                 .foregroundStyle(accent)
 
                 Text(preview?.title ?? record.displayTitle)
-                    .font(.system(size: 14.5, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .lineLimit(3)
                     .foregroundStyle(.primary)
 
                 Spacer(minLength: 0)
 
-                Text("Copies URL, not the thumbnail")
-                    .font(.system(size: 10.5, weight: .medium))
+                Text(record.previewText)
+                    .font(.system(size: 11.5, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             previewThumbnail
-                .frame(width: 70, height: 104)
+                .frame(width: 74, height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.28), lineWidth: 0.8)
-                }
-                .shadow(color: .black.opacity(0.13), radius: 5, y: 3)
+                .shadow(color: .black.opacity(0.1), radius: 5, y: 3)
         }
-        .padding(13)
-        .background(
-            LinearGradient(
-                colors: [
-                    accent.opacity(0.13),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.2)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .overlay(alignment: .bottomTrailing) {
-            Image(systemName: "arrow.up.right")
-                .font(.system(size: 9.5, weight: .bold))
-                .foregroundStyle(accent.opacity(0.78))
-                .padding(12)
-        }
+        .padding(14)
         .task(id: "\(record.id.uuidString)#\(model.mediaRefreshGeneration)") {
             preview = await LinkPreviewService.shared.preview(for: record.previewText)
         }
@@ -510,7 +486,7 @@ private struct LinkPreviewView: View {
             Image(decorative: image, scale: 1)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 70, height: 104)
+                .frame(width: 74, height: 110)
                 .clipped()
         } else {
             ZStack {
@@ -554,21 +530,21 @@ private struct FilePreviewView: View {
                         .foregroundStyle(accent)
                 }
             }
-            .frame(width: 42, height: 42)
+            .frame(width: 50, height: 50)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Original file", systemImage: "arrow.up.right.square")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(accent)
+            VStack(alignment: .leading, spacing: 8) {
                 Text(parentPath ?? record.previewText)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.84))
+                    .lineLimit(4)
+                Text("Original file")
+                    .font(.system(size: 11.5, weight: .regular))
                     .foregroundStyle(.secondary)
-                    .lineLimit(6)
             }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
+        .padding(16)
         .task(id: "\(record.id.uuidString)#\(model.mediaRefreshGeneration)") {
             do {
                 let payload = try await model.payload(for: record)
@@ -591,14 +567,12 @@ private struct GenericCardContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: record.kind.symbolName)
-                .font(.system(size: 30))
+                .font(.system(size: 28))
                 .foregroundStyle(accent)
-            Text(record.displayTitle)
-                .font(.system(size: 15, weight: .bold))
-                .lineLimit(2)
             Text(record.previewText)
-                .font(.system(size: 12.5))
-                .lineLimit(5)
+                .font(.system(size: 13.5))
+                .lineSpacing(2)
+                .lineLimit(6)
                 .foregroundStyle(.secondary)
             Spacer()
         }
@@ -611,23 +585,7 @@ private struct ColorPreviewView: View {
     let value: String
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            Color(passstHex: value) ?? .gray
-            Text(value.uppercased())
-                .font(.system(size: 18, weight: .heavy, design: .monospaced))
-                .foregroundStyle(contrastingForeground)
-                .padding(14)
-        }
-    }
-
-    private var contrastingForeground: Color {
-        guard let nsColor = NSColor(passstHex: value)?.usingColorSpace(.deviceRGB) else {
-            return .white
-        }
-        let luminance = 0.2126 * nsColor.redComponent
-            + 0.7152 * nsColor.greenComponent
-            + 0.0722 * nsColor.blueComponent
-        return luminance > 0.58 ? .black : .white
+        Color(passstHex: value) ?? .gray
     }
 }
 
@@ -635,6 +593,7 @@ private struct ThumbnailImageView: View {
     let model: AppModel
     let record: ClipboardRecord
     @State private var image: CGImage?
+    @State private var loadFailed = false
 
     var body: some View {
         Group {
@@ -642,9 +601,24 @@ private struct ThumbnailImageView: View {
                 Image(decorative: image, scale: 1)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+            } else if loadFailed {
+                VStack(spacing: 8) {
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.system(size: 25, weight: .regular))
+                    Text("Preview unavailable")
+                        .font(.system(size: 13.5, weight: .medium))
+                    Text("The original image can still be copied or dragged.")
+                        .font(.system(size: 11.5))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: 170)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.primary.opacity(0.035))
             } else {
                 ZStack {
-                    Color.secondary.opacity(0.07)
+                    Color.primary.opacity(0.035)
                     ProgressView()
                         .controlSize(.small)
                 }
@@ -654,6 +628,7 @@ private struct ThumbnailImageView: View {
         .task(
             id: "\(record.thumbnailFilename ?? record.id.uuidString)#\(model.mediaRefreshGeneration)"
         ) {
+            loadFailed = false
             if let url = await model.thumbnailURL(for: record),
                let thumbnail = await Self.decode(url: url) {
                 image = thumbnail
@@ -663,8 +638,10 @@ private struct ThumbnailImageView: View {
             do {
                 let payload = try await model.payload(for: record)
                 image = await Self.decode(data: payload.preferredImageData)
+                loadFailed = image == nil
             } catch {
                 image = nil
+                loadFailed = true
                 model.show(error: error)
             }
         }

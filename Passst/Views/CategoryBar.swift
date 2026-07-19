@@ -4,18 +4,23 @@ import UniformTypeIdentifiers
 
 struct CategoryBar: View {
     @Bindable var model: AppModel
+    let compact: Bool
+
     @State private var creatingCategory = false
     @State private var newCategoryName = ""
     @State private var newCategoryColor = ClipboardCategory.palette[4]
     @State private var targetedCategoryID: UUID?
+    @State private var hoveredCategoryID: String?
+    @State private var plusHovered = false
     @FocusState private var nameFocused: Bool
 
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 7) {
+            HStack(spacing: compact ? 8 : 18) {
                 categoryButton(
                     title: "Clipboard",
-                    color: Color.secondary,
+                    color: Color.primary.opacity(0.72),
+                    systemImage: "clock.arrow.circlepath",
                     selected: model.selectedCategoryID == nil
                 ) {
                     model.selectedCategoryID = nil
@@ -48,61 +53,91 @@ struct CategoryBar: View {
                     }
                 }
 
-                Button {
-                    creatingCategory = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
-                        .frame(width: 26, height: 26)
-                        .background(.thinMaterial, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .help("Create pinboard")
-                .popover(isPresented: $creatingCategory, arrowEdge: .bottom) {
-                    categoryCreator
+                if !compact {
+                    Button {
+                        creatingCategory = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .regular))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Color.primary.opacity(plusHovered ? 0.075 : 0),
+                                in: Circle()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { plusHovered = $0 }
+                    .help("Create pinboard")
+                    .popover(isPresented: $creatingCategory, arrowEdge: .bottom) {
+                        categoryCreator
+                    }
                 }
             }
             .padding(.vertical, 4)
         }
+        .frame(height: 40)
         .scrollIndicators(.hidden)
+        .animation(.easeOut(duration: 0.16), value: compact)
     }
 
     private func categoryButton(
         title: String,
         color: Color,
+        systemImage: String? = nil,
         selected: Bool,
         dropTargeted: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(color)
-                    .frame(width: 7, height: 7)
-                Text(title)
-                    .lineLimit(1)
+        let identifier = systemImage == nil ? title : "clipboard"
+        let hovered = hoveredCategoryID == identifier
+
+        return Button(action: action) {
+            HStack(spacing: 8) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: compact ? 14 : 13, weight: .medium))
+                        .frame(width: 14)
+                } else {
+                    Circle()
+                        .fill(color)
+                        .frame(width: compact ? 10 : 9, height: compact ? 10 : 9)
+                }
+
+                if !compact {
+                    Text(title)
+                        .lineLimit(1)
+                }
             }
-            .font(.system(size: 11.5, weight: selected ? .semibold : .medium))
-            .foregroundStyle(selected ? .primary : .secondary)
-            .padding(.horizontal, 10)
-            .frame(height: 27)
+            .font(.system(size: 14, weight: selected ? .semibold : .medium))
+            .foregroundStyle(
+                selected
+                    ? Color.primary.opacity(0.92)
+                    : Color.primary.opacity(0.68)
+            )
+            .padding(.horizontal, compact ? 0 : 10)
+            .frame(width: compact ? 30 : nil, height: 32)
             .background(
-                selected || dropTargeted ? color.opacity(0.17) : Color.clear,
+                dropTargeted
+                    ? color.opacity(0.22)
+                    : selected
+                        ? Color.primary.opacity(0.105)
+                        : Color.primary.opacity(hovered ? 0.06 : 0),
                 in: Capsule()
             )
             .overlay {
-                Capsule()
-                    .stroke(
-                        selected || dropTargeted
-                            ? color.opacity(0.82)
-                            : Color.clear,
-                        lineWidth: selected || dropTargeted ? 1.25 : 0
-                    )
+                if dropTargeted {
+                    Capsule()
+                        .stroke(color.opacity(0.9), lineWidth: 2)
+                }
             }
-            .scaleEffect(dropTargeted ? 1.045 : 1)
         }
         .buttonStyle(.plain)
+        .onHover { isHovered in
+            hoveredCategoryID = isHovered ? identifier : nil
+        }
+        .help(title)
         .animation(.easeOut(duration: 0.12), value: dropTargeted)
+        .animation(.easeOut(duration: 0.12), value: hovered)
     }
 
     private var categoryCreator: some View {
@@ -122,17 +157,13 @@ struct CategoryBar: View {
                     } label: {
                         Circle()
                             .fill(Color(categoryHex: colorHex))
-                            .frame(width: 18, height: 18)
+                            .frame(width: 20, height: 20)
                             .overlay {
                                 if newCategoryColor == colorHex {
-                                    Circle()
-                                        .stroke(.white, lineWidth: 2)
-                                        .padding(2)
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundStyle(.white)
                                 }
-                            }
-                            .overlay {
-                                Circle()
-                                    .stroke(Color.primary.opacity(0.16), lineWidth: 0.7)
                             }
                     }
                     .buttonStyle(.plain)
@@ -208,24 +239,5 @@ struct CategoryBar: View {
     private func resetCreator() {
         newCategoryName = ""
         newCategoryColor = ClipboardCategory.palette[4]
-    }
-}
-
-extension Color {
-    init(categoryHex value: String) {
-        self.init(nsColor: NSColor(categoryHex: value))
-    }
-}
-
-extension NSColor {
-    convenience init(categoryHex value: String) {
-        let hex = value.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        let raw = UInt64(hex, radix: 16) ?? 0x0A84FF
-        self.init(
-            red: CGFloat((raw >> 16) & 0xFF) / 255,
-            green: CGFloat((raw >> 8) & 0xFF) / 255,
-            blue: CGFloat(raw & 0xFF) / 255,
-            alpha: 1
-        )
     }
 }

@@ -184,10 +184,16 @@ enum ClipboardPayloadClassifier {
 
         switch kind {
         case .files:
-            title = fileNames.first ?? "Files"
+            if let first = fileNames.first, fileNames.count > 1 {
+                title = "\(first) +\(fileNames.count - 1)"
+            } else {
+                title = fileNames.first ?? "Files"
+            }
             preview = fileNames.joined(separator: "\n")
         case .image:
-            title = "Image"
+            title = fileNames.first
+                ?? imageFilenameCandidate(from: plainText)
+                ?? "Image"
             preview = imageDimensions(payload).map { "\($0.width) × \($0.height)" } ?? ""
         case .link:
             title = URL(string: plainText)?.host() ?? "Link"
@@ -238,6 +244,25 @@ enum ClipboardPayloadClassifier {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first(where: { !$0.isEmpty })
             .map { String($0) } ?? fallback
+    }
+
+    private static func imageFilenameCandidate(from text: String) -> String? {
+        let candidate = text
+            .split(whereSeparator: \.isNewline)
+            .first
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !candidate.isEmpty else { return nil }
+        let name = URL(string: candidate)?.lastPathComponent.isEmpty == false
+            ? URL(string: candidate)?.lastPathComponent
+            : URL(fileURLWithPath: candidate).lastPathComponent
+        guard let name, !name.isEmpty,
+              let type = UTType(filenameExtension: URL(fileURLWithPath: name).pathExtension),
+              type.conforms(to: .image)
+        else {
+            return nil
+        }
+        return name
     }
 
     private static func looksLikeURL(_ text: String) -> Bool {

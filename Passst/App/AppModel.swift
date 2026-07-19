@@ -3,17 +3,20 @@ import Foundation
 @preconcurrency import KeyboardShortcuts
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
 final class AppModel {
     private(set) var records: [ClipboardRecord] = []
+    private(set) var categories: [ClipboardCategory] = []
     private(set) var isLoading = false
     private(set) var hasMore = false
     private(set) var monitorPaused: Bool
     private(set) var storageSize: Int64 = 0
     private(set) var accessibilityGranted = false
     private(set) var mediaRefreshGeneration = 0
+    private(set) var availableSourceApplications: [ClipboardSourceFilter] = []
 
     var searchQuery = "" {
         didSet {
@@ -25,11 +28,29 @@ final class AppModel {
         }
     }
     var isSearchFocused = false
+    var searchFilters = ClipboardSearchFilters() {
+        didSet {
+            guard oldValue != searchFilters else { return }
+            if !searchFilters.isEmpty {
+                isSearchFocused = true
+            }
+            scheduleSearch()
+        }
+    }
+    var selectedCategoryID: UUID? {
+        didSet {
+            guard oldValue != selectedCategoryID else { return }
+            reloadHistory(reset: true)
+        }
+    }
     var previewedID: UUID?
     var previewPayload: ClipboardPayload?
     var notice: PanelNotice?
     var reduceMotion: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+    var hasActiveSearchFilters: Bool {
+        !searchFilters.isEmpty
     }
 
     let selection = SelectionState()
@@ -81,6 +102,7 @@ final class AppModel {
         directPasteService = DirectPasteService(accessibility: accessibilityService)
         accessibilityGranted = accessibilityService.isTrusted
         monitorPaused = UserDefaults.standard.bool(forKey: PreferencesKey.monitorPaused)
+        categories = Self.loadCategories()
 
         applyStoredAppearance()
         start()
@@ -96,6 +118,7 @@ final class AppModel {
             installUITestFixtures()
         } else {
             reloadHistory(reset: true, animated: false)
+            refreshSourceApplications()
             refreshStorageSize()
 
             if ProcessInfo.processInfo.arguments.contains("--show-panel") {
@@ -146,6 +169,128 @@ final class AppModel {
             monitorPaused ? "Clipboard history paused" : "Clipboard history resumed",
             symbol: monitorPaused ? "pause.fill" : "play.fill"
         )
+    }
+
+    func category(for record: ClipboardRecord) -> ClipboardCategory? {
+        guard let categoryID = record.categoryID else { return nil }
+        return categories.first { $0.id == categoryID }
+    }
+
+    @discardableResult
+    func addCategory(name: String, colorHex: String) -> ClipboardCategory? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return nil }
+        let category = ClipboardCategory(
+            name: String(trimmedName.prefix(40)),
+            colorHex: colorHex
+        )
+        categories.append(category)
+        saveCategories()
+        return category
+    }
+
+    func updateCategory(_ updated: ClipboardCategory) {
+        guard let index = categories.firstIndex(where: { $0.id == updated.id }) else {
+            return
+        }
+        let trimmedName = updated.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        categories[index].name = String(trimmedName.prefix(40))
+        categories[index].colorHex = updated.colorHex
+        saveCategories()
+    }
+
+    func deleteCategory(_ category: ClipboardCategory) {
+        categories.removeAll { $0.id == category.id }
+        if selectedCategoryID == category.id {
+            selectedCategoryID = nil
+        }
+        for index in records.indices where records[index].categoryID == category.id {
+            records[index].categoryID = nil
+        }
+        saveCategories()
+        Task {
+            do {
+                try await repository.removeCategoryReferences(category.id)
+                reloadHistory(reset: true)
+            } catch {
+                show(error: error)
+            }
+        }
+    }
+
+    func assign(_ record: ClipboardRecord, to category: ClipboardCategory?) {
+        Task {
+            do {
+                try await repository.setCategory(category?.id, for: record.id)
+                guard let index = records.firstIndex(where: { $0.id == record.id }) else {
+                    return
+                }
+                if let selectedCategoryID, category?.id != selectedCategoryID {
+                    withAnimation(.smooth(duration: 0.16)) {
+                        records.remove(at: index)
+                        selection.reset(records: records)
+                    }
+                } else {
+                    records[index].categoryID = category?.id
+                }
+                showNotice(
+                    category.map { "Pinned to \($0.name)" } ?? "Unpinned",
+                    symbol: category == nil ? "tray" : "pin.fill"
+                )
+            } catch {
+                show(error: error)
+            }
+        }
+    }
+
+    func assign(recordID: UUID, to category: ClipboardCategory?) {
+        guard let record = records.first(where: { $0.id == recordID }) else {
+            return
+        }
+        assign(record, to: category)
+    }
+
+    func toggleContentKindFilter(_ kind: ClipboardContentKind) {
+        if searchFilters.kinds.contains(kind) {
+            searchFilters.kinds.remove(kind)
+        } else {
+            searchFilters.kinds.insert(kind)
+        }
+    }
+
+    func setSourceFilter(_ source: ClipboardSourceFilter?) {
+        searchFilters.source = source
+    }
+
+    func setDateFilter(_ date: ClipboardDateFilter?) {
+        searchFilters.date = date
+    }
+
+    func clearContentKindFilters() {
+        searchFilters.kinds.removeAll()
+    }
+
+    func clearSearchFilters() {
+        searchFilters = ClipboardSearchFilters()
+    }
+
+    func rename(_ record: ClipboardRecord, to title: String) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+        let finalTitle = String(trimmedTitle.prefix(180))
+        Task {
+            do {
+                try await repository.rename(id: record.id, title: finalTitle)
+                guard let index = records.firstIndex(where: { $0.id == record.id }) else {
+                    return
+                }
+                records[index].displayTitle = finalTitle
+                showNotice("Item renamed", symbol: "pencil")
+            } catch {
+                show(error: error)
+            }
+        }
     }
 
     func togglePreview() {
@@ -199,8 +344,9 @@ final class AppModel {
             if previewedID != nil {
                 previewedID = nil
                 previewPayload = nil
-            } else if isSearchFocused || !searchQuery.isEmpty {
+            } else if isSearchFocused || !searchQuery.isEmpty || hasActiveSearchFilters {
                 searchQuery = ""
+                clearSearchFilters()
                 isSearchFocused = false
             } else {
                 closePanel()
@@ -261,6 +407,7 @@ final class AppModel {
                 }
                 reloadHistory(reset: true)
                 refreshStorageSize()
+                refreshSourceApplications()
                 showNotice(
                     selected.count == 1 ? "Item deleted" : "\(selected.count) items deleted",
                     symbol: "trash"
@@ -278,6 +425,7 @@ final class AppModel {
                 records = []
                 selection.clear()
                 storageSize = 0
+                availableSourceApplications = []
                 showNotice("History cleared", symbol: "checkmark.circle.fill")
             } catch {
                 show(error: error)
@@ -289,6 +437,16 @@ final class AppModel {
         Task {
             do {
                 storageSize = try await repository.storageSize()
+            } catch {
+                show(error: error)
+            }
+        }
+    }
+
+    func refreshSourceApplications() {
+        Task {
+            do {
+                availableSourceApplications = try await repository.sourceApplications()
             } catch {
                 show(error: error)
             }
@@ -386,6 +544,45 @@ final class AppModel {
         try await repository.payload(for: record)
     }
 
+    func dragItemProvider(for record: ClipboardRecord) -> NSItemProvider {
+        let provider: NSItemProvider
+        if record.kind == .link, let url = URL(string: record.previewText) {
+            provider = NSItemProvider(object: url as NSURL)
+        } else {
+            provider = NSItemProvider(object: record.previewText as NSString)
+        }
+        provider.suggestedName = record.displayTitle
+        provider.registerDataRepresentation(
+            forTypeIdentifier: UTType.passstClipboardRecord.identifier,
+            visibility: .ownProcess
+        ) { completion in
+            completion(Data(record.id.uuidString.utf8), nil)
+            return nil
+        }
+
+        switch record.kind {
+        case .image:
+            registerImageDragRepresentation(on: provider, record: record)
+        case .files:
+            registerFileDragRepresentation(on: provider, record: record)
+        case .richText:
+            registerPayloadData(
+                on: provider,
+                record: record,
+                type: .rtf
+            )
+        case .text, .code, .color, .mixed:
+            registerPayloadData(
+                on: provider,
+                record: record,
+                type: .string
+            )
+        case .link:
+            break
+        }
+        return provider
+    }
+
     private func capture(
         _ payload: ClipboardPayload,
         sourceApplication: NSRunningApplication?
@@ -404,7 +601,9 @@ final class AppModel {
                     payload: storedPayload,
                     metadata: metadata
                 )
-                if searchQuery.isEmpty {
+                if searchQuery.isEmpty,
+                   selectedCategoryID == nil,
+                   !hasActiveSearchFilters {
                     withAnimation(
                         reduceMotion ? .easeOut(duration: 0.12) : .smooth(duration: 0.18)
                     ) {
@@ -416,9 +615,110 @@ final class AppModel {
                     reloadHistory(reset: true)
                 }
                 refreshStorageSize()
+                refreshSourceApplications()
             } catch {
                 show(error: error)
             }
+        }
+    }
+
+    private func registerImageDragRepresentation(
+        on provider: NSItemProvider,
+        record: ClipboardRecord
+    ) {
+        provider.registerDataRepresentation(
+            forTypeIdentifier: UTType.png.identifier,
+            visibility: .all
+        ) { [weak self] completion in
+            let progress = Progress(totalUnitCount: 1)
+            Task { @MainActor in
+                defer { progress.completedUnitCount = 1 }
+                guard let self else {
+                    completion(nil, CocoaError(.userCancelled))
+                    return
+                }
+                do {
+                    let payload = try await self.payload(for: record)
+                    guard let source = payload.preferredImageData,
+                          let png = ImageRepresentationNormalizer.pngData(from: source)
+                    else {
+                        completion(nil, CocoaError(.fileReadCorruptFile))
+                        return
+                    }
+                    completion(png, nil)
+                } catch {
+                    completion(nil, error)
+                }
+            }
+            return progress
+        }
+    }
+
+    private func registerFileDragRepresentation(
+        on provider: NSItemProvider,
+        record: ClipboardRecord
+    ) {
+        let fileExtension = URL(fileURLWithPath: record.displayTitle).pathExtension
+        let typeIdentifier = UTType(filenameExtension: fileExtension)?.identifier
+            ?? UTType.data.identifier
+        provider.registerFileRepresentation(
+            forTypeIdentifier: typeIdentifier,
+            fileOptions: [],
+            visibility: .all
+        ) { [weak self] completion in
+            let progress = Progress(totalUnitCount: 1)
+            Task { @MainActor in
+                defer { progress.completedUnitCount = 1 }
+                guard let self else {
+                    completion(nil, false, CocoaError(.userCancelled))
+                    return
+                }
+                do {
+                    let payload = try await self.payload(for: record)
+                    guard let url = payload.fileURLs.first else {
+                        completion(nil, false, CocoaError(.fileNoSuchFile))
+                        return
+                    }
+                    completion(url, false, nil)
+                } catch {
+                    completion(nil, false, error)
+                }
+            }
+            return progress
+        }
+    }
+
+    private func registerPayloadData(
+        on provider: NSItemProvider,
+        record: ClipboardRecord,
+        type: NSPasteboard.PasteboardType
+    ) {
+        let typeIdentifier = type.rawValue
+        provider.registerDataRepresentation(
+            forTypeIdentifier: typeIdentifier,
+            visibility: .all
+        ) { [weak self] completion in
+            let progress = Progress(totalUnitCount: 1)
+            Task { @MainActor in
+                defer { progress.completedUnitCount = 1 }
+                guard let self else {
+                    completion(nil, CocoaError(.userCancelled))
+                    return
+                }
+                do {
+                    let payload = try await self.payload(for: record)
+                    let data = payload.representationData(for: type)
+                        ?? payload.plainText?.data(using: .utf8)
+                    guard let data else {
+                        completion(nil, CocoaError(.fileReadUnknown))
+                        return
+                    }
+                    completion(data, nil)
+                } catch {
+                    completion(nil, error)
+                }
+            }
+            return progress
         }
     }
 
@@ -489,6 +789,7 @@ final class AppModel {
         activeLoadGeneration += 1
         let generation = activeLoadGeneration
         let query = searchQuery
+        let filters = searchFilters
         let offset = reset ? 0 : records.count
         isLoading = true
 
@@ -501,6 +802,8 @@ final class AppModel {
             do {
                 let page = try await repository.page(
                     query: query,
+                    categoryID: selectedCategoryID,
+                    filters: filters,
                     offset: offset,
                     limit: 100
                 )
@@ -532,6 +835,23 @@ final class AppModel {
         let rawValue = UserDefaults.standard.string(forKey: PreferencesKey.appearance)
             ?? AppAppearance.system.rawValue
         applyAppearance(AppAppearance(rawValue: rawValue) ?? .system)
+    }
+
+    private static func loadCategories() -> [ClipboardCategory] {
+        guard let data = UserDefaults.standard.data(forKey: PreferencesKey.categories),
+              let categories = try? JSONDecoder().decode(
+                [ClipboardCategory].self,
+                from: data
+              )
+        else {
+            return []
+        }
+        return categories
+    }
+
+    private func saveCategories() {
+        guard let data = try? JSONEncoder().encode(categories) else { return }
+        UserDefaults.standard.set(data, forKey: PreferencesKey.categories)
     }
 
     private func installWorkspaceObservers() {
@@ -583,28 +903,45 @@ final class AppModel {
         Task {
             do {
                 try await repository.clear()
+                let usefulLinks = ClipboardCategory(
+                    name: "Useful Links",
+                    colorHex: ClipboardCategory.palette[3]
+                )
+                let important = ClipboardCategory(
+                    name: "Important",
+                    colorHex: ClipboardCategory.palette[0]
+                )
+                let code = ClipboardCategory(
+                    name: "Code",
+                    colorHex: ClipboardCategory.palette[5]
+                )
+                categories = [usefulLinks, important, code]
                 let fixtures = [
                     (
                         Self.uiTestFilePayload(),
                         "com.apple.finder",
-                        "Finder"
+                        "Finder",
+                        important.id
                     ),
                     (
                         Self.uiTestImagePayload(),
                         "com.apple.Preview",
-                        "Preview"
+                        "Preview",
+                        important.id
                     ),
                     (
                         ClipboardPayload.text("#3867F4"),
                         "com.apple.Notes",
-                        "Notes"
+                        "Notes",
+                        nil
                     ),
                     (
                         ClipboardPayload.text(
                             "https://developer.apple.com/documentation/swiftui"
                         ),
                         "com.apple.Safari",
-                        "Safari"
+                        "Safari",
+                        usefulLinks.id
                     ),
                     (
                         ClipboardPayload.text(
@@ -616,7 +953,8 @@ final class AppModel {
                             """
                         ),
                         "com.apple.Terminal",
-                        "Terminal"
+                        "Terminal",
+                        code.id
                     ),
                     (
                         ClipboardPayload.text(
@@ -627,18 +965,21 @@ final class AppModel {
                             """
                         ),
                         "com.apple.TextEdit",
-                        "TextEdit"
+                        "TextEdit",
+                        nil
                     )
                 ]
-                for (payload, bundleIdentifier, applicationName) in fixtures {
-                    let metadata = ClipboardPayloadClassifier.makeRecord(
+                for (payload, bundleIdentifier, applicationName, categoryID) in fixtures {
+                    var metadata = ClipboardPayloadClassifier.makeRecord(
                         for: payload,
                         sourceBundleIdentifier: bundleIdentifier,
                         sourceApplicationName: applicationName
                     )
+                    metadata.categoryID = categoryID
                     _ = try await repository.save(payload: payload, metadata: metadata)
                 }
                 reloadHistory(reset: true)
+                refreshSourceApplications()
                 refreshStorageSize()
                 if ProcessInfo.processInfo.arguments.contains("--show-panel") {
                     presentPanel()
@@ -710,10 +1051,15 @@ final class AppModel {
             items: [
                 ClipboardPayloadItem(
                     representations: [
-                        PasteboardRepresentation(type: .png, data: png)
+                        PasteboardRepresentation(type: .png, data: png),
+                        PasteboardRepresentation(
+                            type: .string,
+                            data: Data("Aurora Cards.png".utf8)
+                        )
                     ]
                 )
-            ]
+            ],
+            plainText: "Aurora Cards.png"
         )
     }
 

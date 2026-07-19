@@ -10,7 +10,8 @@ struct PanelRootView: View {
 
             VStack(spacing: 0) {
                 PanelToolbar(model: model)
-                    .frame(height: 58)
+                    .frame(height: 62)
+                    .zIndex(30)
 
                 Divider()
                     .overlay(Color.white.opacity(0.12))
@@ -31,7 +32,7 @@ struct PanelRootView: View {
 
             if let notice = model.notice {
                 NoticeView(notice: notice)
-                    .padding(.top, 66)
+                    .padding(.top, 58)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(20)
             }
@@ -130,8 +131,8 @@ struct PanelRootView: View {
                 }
                 .scrollTargetLayout()
                 .padding(.horizontal, 24)
-                .padding(.top, 14)
-                .padding(.bottom, 26)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
             }
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
@@ -148,20 +149,42 @@ struct PanelRootView: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
-            Image(systemName: model.searchQuery.isEmpty ? "clipboard" : "magnifyingglass")
+            Image(
+                systemName: model.searchQuery.isEmpty && !model.hasActiveSearchFilters
+                    ? "clipboard"
+                    : "magnifyingglass"
+            )
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(.secondary)
-            Text(model.searchQuery.isEmpty ? "Copy something to begin" : "No matches")
+            Text(emptyStateTitle)
                 .font(.system(size: 15, weight: .semibold))
             Text(
-                model.searchQuery.isEmpty
-                    ? "Passst keeps the original clipboard formats."
-                    : "Try another word or clear the search."
+                emptyStateMessage
             )
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
         .frame(width: 330, height: 210)
+    }
+
+    private var emptyStateTitle: String {
+        if !model.searchQuery.isEmpty || model.hasActiveSearchFilters {
+            return "No matches"
+        }
+        if model.selectedCategoryID != nil {
+            return "This pinboard is empty"
+        }
+        return "Copy something to begin"
+    }
+
+    private var emptyStateMessage: String {
+        if !model.searchQuery.isEmpty || model.hasActiveSearchFilters {
+            return "Try another query or remove a filter."
+        }
+        if model.selectedCategoryID != nil {
+            return "Drag a card onto this pinboard, or assign it from the context menu."
+        }
+        return "Passst keeps the original clipboard formats."
     }
 }
 

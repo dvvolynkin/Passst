@@ -132,6 +132,74 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
             }
 
+            Section("Pinboards") {
+                if model.categories.isEmpty {
+                    Text("Create pinboards from the + button in the Passst panel.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.categories) { category in
+                        HStack(spacing: 10) {
+                            Menu {
+                                ForEach(ClipboardCategory.palette, id: \.self) { colorHex in
+                                    Button {
+                                        var updated = category
+                                        updated.colorHex = colorHex
+                                        model.updateCategory(updated)
+                                    } label: {
+                                        Label(
+                                            colorHex,
+                                            systemImage: category.colorHex == colorHex
+                                                ? "checkmark.circle.fill"
+                                                : "circle.fill"
+                                        )
+                                    }
+                                }
+                            } label: {
+                                Circle()
+                                    .fill(Color(categoryHex: category.colorHex))
+                                    .frame(width: 17, height: 17)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .frame(width: 24)
+
+                            TextField(
+                                "Pinboard name",
+                                text: Binding(
+                                    get: { category.name },
+                                    set: { name in
+                                        var updated = category
+                                        updated.name = name
+                                        model.updateCategory(updated)
+                                    }
+                                )
+                            )
+                            .textFieldStyle(.plain)
+
+                            Spacer()
+
+                            Button(role: .destructive) {
+                                model.deleteCategory(category)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Delete pinboard")
+                        }
+                    }
+                }
+
+                Button("Add Pinboard") {
+                    let color = ClipboardCategory.palette[
+                        model.categories.count % ClipboardCategory.palette.count
+                    ]
+                    _ = model.addCategory(name: "New Pinboard", colorHex: color)
+                }
+
+                Text("Deleting a pinboard does not delete clipboard items.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Excluded Applications") {
                 if excludedBundleIdentifiers.isEmpty {
                     Text("Clipboard changes from every application are recorded.")

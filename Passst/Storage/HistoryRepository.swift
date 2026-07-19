@@ -81,6 +81,16 @@ actor HistoryRepository {
                 );
                 """)
         }
+        migrator.registerMigration("addCategories") { db in
+            try db.alter(table: "clipboard_records") { table in
+                table.add(column: "categoryID", .text)
+            }
+            try db.create(
+                index: "clipboard_records_categoryID",
+                on: "clipboard_records",
+                columns: ["categoryID"]
+            )
+        }
         try migrator.migrate(database)
     }
 
@@ -146,20 +156,66 @@ actor HistoryRepository {
         }
     }
 
-    func page(query: String, offset: Int, limit: Int = 100) async throws -> HistoryPage {
+    func page(
+        query: String,
+        categoryID: UUID? = nil,
+        filters: ClipboardSearchFilters = ClipboardSearchFilters(),
+        offset: Int,
+        limit: Int = 100
+    ) async throws -> HistoryPage {
         let boundedLimit = max(1, min(limit, 200))
         let rows: [Row]
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let categoryValue = categoryID?.uuidString
+        let selectedKinds = ClipboardContentKind.allCases.map {
+            filters.kinds.contains($0) ? $0.rawValue : ""
+        }
+        let sourceEnabled = filters.source == nil ? 0 : 1
+        let sourceBundleIdentifier = filters.source?.bundleIdentifier
+        let sourceApplicationName = filters.source?.applicationName
+        let dateInterval = filters.date?.interval
+        let dateStart = dateInterval?.start.timeIntervalSince1970
+        let dateEnd = dateInterval?.end.timeIntervalSince1970
 
-        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if trimmedQuery.isEmpty {
             rows = try database.read { db in
                 try Row.fetchAll(
                     db,
                     sql: """
-                        SELECT * FROM clipboard_records
-                        ORDER BY updatedAt DESC
+                        SELECT r.*
+                        FROM clipboard_records AS r
+                        WHERE (? IS NULL OR r.categoryID = ?)
+                          AND (
+                            ? = 0
+                            OR r.kind IN (?, ?, ?, ?, ?, ?, ?, ?)
+                          )
+                          AND (
+                            ? = 0
+                            OR (
+                              (? IS NOT NULL AND r.sourceBundleIdentifier = ?)
+                              OR (? IS NULL AND r.sourceApplicationName = ?)
+                            )
+                          )
+                          AND (
+                            ? IS NULL
+                            OR (r.updatedAt >= ? AND r.updatedAt < ?)
+                          )
+                        ORDER BY r.updatedAt DESC
                         LIMIT ? OFFSET ?
                         """,
-                    arguments: [boundedLimit + 1, max(0, offset)]
+                    arguments: [
+                        categoryValue, categoryValue,
+                        filters.kinds.isEmpty ? 0 : 1,
+                        selectedKinds[0], selectedKinds[1],
+                        selectedKinds[2], selectedKinds[3],
+                        selectedKinds[4], selectedKinds[5],
+                        selectedKinds[6], selectedKinds[7],
+                        sourceEnabled,
+                        sourceBundleIdentifier, sourceBundleIdentifier,
+                        sourceBundleIdentifier, sourceApplicationName,
+                        dateStart, dateStart, dateEnd,
+                        boundedLimit + 1, max(0, offset)
+                    ]
                 )
             }
         } else {
@@ -171,17 +227,45 @@ actor HistoryRepository {
                     sql: """
                         SELECT r.*
                         FROM clipboard_records AS r
-                        WHERE r.id IN (
-                            SELECT id FROM clipboard_search
-                            WHERE clipboard_search MATCH ?
-                        )
-                        OR r.displayTitle LIKE ?
-                        OR r.searchableText LIKE ?
-                        OR COALESCE(r.sourceApplicationName, '') LIKE ?
+                        WHERE (? IS NULL OR r.categoryID = ?)
+                          AND (
+                            ? = 0
+                            OR r.kind IN (?, ?, ?, ?, ?, ?, ?, ?)
+                          )
+                          AND (
+                            ? = 0
+                            OR (
+                              (? IS NOT NULL AND r.sourceBundleIdentifier = ?)
+                              OR (? IS NULL AND r.sourceApplicationName = ?)
+                            )
+                          )
+                          AND (
+                            ? IS NULL
+                            OR (r.updatedAt >= ? AND r.updatedAt < ?)
+                          )
+                          AND (
+                            r.id IN (
+                                SELECT id FROM clipboard_search
+                                WHERE clipboard_search MATCH ?
+                            )
+                            OR r.displayTitle LIKE ?
+                            OR r.searchableText LIKE ?
+                            OR COALESCE(r.sourceApplicationName, '') LIKE ?
+                          )
                         ORDER BY r.updatedAt DESC
                         LIMIT ? OFFSET ?
                         """,
                     arguments: [
+                        categoryValue, categoryValue,
+                        filters.kinds.isEmpty ? 0 : 1,
+                        selectedKinds[0], selectedKinds[1],
+                        selectedKinds[2], selectedKinds[3],
+                        selectedKinds[4], selectedKinds[5],
+                        selectedKinds[6], selectedKinds[7],
+                        sourceEnabled,
+                        sourceBundleIdentifier, sourceBundleIdentifier,
+                        sourceBundleIdentifier, sourceApplicationName,
+                        dateStart, dateStart, dateEnd,
                         normalized, like, like, like,
                         boundedLimit + 1, max(0, offset)
                     ]
@@ -235,6 +319,76 @@ actor HistoryRepository {
 
     func thumbnailURL(for record: ClipboardRecord) async -> URL? {
         await payloadStore.thumbnailURL(filename: record.thumbnailFilename)
+    }
+
+    func sourceApplications() async throws -> [ClipboardSourceFilter] {
+        let rows = try database.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT sourceBundleIdentifier, sourceApplicationName,
+                           MAX(updatedAt) AS mostRecent
+                    FROM clipboard_records
+                    WHERE sourceApplicationName IS NOT NULL
+                      AND sourceApplicationName != ''
+                    GROUP BY COALESCE(sourceBundleIdentifier, sourceApplicationName)
+                    ORDER BY mostRecent DESC
+                    LIMIT 24
+                    """
+            )
+        }
+        return rows.compactMap { row in
+            let applicationName: String? = row["sourceApplicationName"]
+            guard let applicationName else { return nil }
+            let bundleIdentifier: String? = row["sourceBundleIdentifier"]
+            return ClipboardSourceFilter(
+                bundleIdentifier: bundleIdentifier,
+                applicationName: applicationName
+            )
+        }
+    }
+
+    func setCategory(_ categoryID: UUID?, for id: UUID) async throws {
+        try await database.write { db in
+            try db.execute(
+                sql: "UPDATE clipboard_records SET categoryID = ? WHERE id = ?",
+                arguments: [categoryID?.uuidString, id.uuidString]
+            )
+        }
+    }
+
+    func removeCategoryReferences(_ categoryID: UUID) async throws {
+        try await database.write { db in
+            try db.execute(
+                sql: "UPDATE clipboard_records SET categoryID = NULL WHERE categoryID = ?",
+                arguments: [categoryID.uuidString]
+            )
+        }
+    }
+
+    func rename(id: UUID, title: String) async throws {
+        try await database.write { db in
+            try db.execute(
+                sql: "UPDATE clipboard_records SET displayTitle = ? WHERE id = ?",
+                arguments: [title, id.uuidString]
+            )
+            try db.execute(
+                sql: "DELETE FROM clipboard_search WHERE id = ?",
+                arguments: [id.uuidString]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO clipboard_search (
+                        id, displayTitle, searchableText, sourceApplicationName
+                    )
+                    SELECT id, displayTitle, searchableText,
+                           COALESCE(sourceApplicationName, '')
+                    FROM clipboard_records
+                    WHERE id = ?
+                    """,
+                arguments: [id.uuidString]
+            )
+        }
     }
 
     func delete(id: UUID) async throws {
@@ -335,7 +489,7 @@ actor HistoryRepository {
 
         var updated = record
         updated.kind = .image
-        updated.displayTitle = "Image"
+        updated.displayTitle = URL(fileURLWithPath: candidate).lastPathComponent
         return try await persistReclassification(updated)
     }
 
@@ -455,8 +609,8 @@ actor HistoryRepository {
                 INSERT INTO clipboard_records (
                     id, kind, createdAt, updatedAt, displayTitle, previewText,
                     searchableText, sourceBundleIdentifier, sourceApplicationName,
-                    payloadFilename, thumbnailFilename, payloadDigest, byteCount
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    categoryID, payloadFilename, thumbnailFilename, payloadDigest, byteCount
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             arguments: [
                 record.id.uuidString,
@@ -468,6 +622,7 @@ actor HistoryRepository {
                 record.searchableText,
                 record.sourceBundleIdentifier,
                 record.sourceApplicationName,
+                record.categoryID?.uuidString,
                 record.payloadFilename,
                 record.thumbnailFilename,
                 record.payloadDigest,
@@ -509,6 +664,7 @@ actor HistoryRepository {
             searchableText: row["searchableText"],
             sourceBundleIdentifier: row["sourceBundleIdentifier"],
             sourceApplicationName: row["sourceApplicationName"],
+            categoryID: (row["categoryID"] as String?).flatMap(UUID.init(uuidString:)),
             payloadFilename: row["payloadFilename"],
             thumbnailFilename: row["thumbnailFilename"],
             payloadDigest: row["payloadDigest"],

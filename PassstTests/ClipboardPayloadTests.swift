@@ -151,6 +151,32 @@ final class ClipboardPayloadTests: XCTestCase {
         )
 
         XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .image)
+        XCTAssertEqual(
+            ClipboardPayloadClassifier.makeRecord(
+                for: payload,
+                sourceBundleIdentifier: nil,
+                sourceApplicationName: nil
+            ).displayTitle,
+            "photo.jpg"
+        )
+    }
+
+    func testMultipleFilesUseTheirNamesInTheCardHeader() {
+        let first = URL(fileURLWithPath: "/tmp/Quarterly Report.pdf")
+        let second = URL(fileURLWithPath: "/tmp/Budget.xlsx")
+        let payload = ClipboardPayload(
+            items: [],
+            plainText: nil,
+            fileURLs: [first, second]
+        )
+
+        let record = ClipboardPayloadClassifier.makeRecord(
+            for: payload,
+            sourceBundleIdentifier: nil,
+            sourceApplicationName: nil
+        )
+
+        XCTAssertEqual(record.displayTitle, "Quarterly Report.pdf +1")
     }
 
     func testCaptureAddsPortablePNGForGenericImageRepresentation() throws {

@@ -75,6 +75,116 @@ final class HistoryRepositoryTests: XCTestCase {
         )
     }
 
+    func testCategoryAssignmentFilteringAndRemoval() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PassstTests-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: root)
+            } catch {
+                XCTFail("Could not clean test data: \(error)")
+            }
+        }
+        let repository = try HistoryRepository(rootURL: root)
+        let categoryID = UUID()
+        let firstPayload = ClipboardPayload.text("Categorized")
+        let secondPayload = ClipboardPayload.text("Uncategorized")
+        let first = try await repository.save(
+            payload: firstPayload,
+            metadata: makeRecord(payload: firstPayload, title: "Categorized")
+        )
+        _ = try await repository.save(
+            payload: secondPayload,
+            metadata: makeRecord(payload: secondPayload, title: "Uncategorized")
+        )
+
+        try await repository.setCategory(categoryID, for: first.id)
+
+        let filtered = try await repository.page(
+            query: "",
+            categoryID: categoryID,
+            offset: 0
+        )
+        XCTAssertEqual(filtered.records.map(\.id), [first.id])
+        XCTAssertEqual(filtered.records.first?.categoryID, categoryID)
+
+        try await repository.removeCategoryReferences(categoryID)
+        let restored = try await repository.record(id: first.id)
+        XCTAssertNil(restored?.categoryID)
+    }
+
+    func testRenameUpdatesRecordAndSearchIndex() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PassstTests-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: root)
+            } catch {
+                XCTFail("Could not clean test data: \(error)")
+            }
+        }
+        let repository = try HistoryRepository(rootURL: root)
+        let payload = ClipboardPayload.text("Opaque contents")
+        let record = try await repository.save(
+            payload: payload,
+            metadata: makeRecord(payload: payload, title: "Original title")
+        )
+
+        try await repository.rename(id: record.id, title: "Quarterly archive")
+
+        let renamed = try await repository.record(id: record.id)
+        let search = try await repository.page(query: "quarterly", offset: 0)
+        XCTAssertEqual(renamed?.displayTitle, "Quarterly archive")
+        XCTAssertEqual(search.records.map(\.id), [record.id])
+    }
+
+    func testSearchFiltersCombineTypeSourceAndDate() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PassstTests-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: root)
+            } catch {
+                XCTFail("Could not clean test data: \(error)")
+            }
+        }
+        let repository = try HistoryRepository(rootURL: root)
+        let safariSource = ClipboardSourceFilter(
+            bundleIdentifier: "com.apple.Safari",
+            applicationName: "Safari"
+        )
+
+        let linkPayload = ClipboardPayload.text("https://developer.apple.com/swift")
+        var linkRecord = makeRecord(payload: linkPayload, title: "Swift documentation")
+        linkRecord.kind = .link
+        linkRecord.sourceBundleIdentifier = safariSource.bundleIdentifier
+        linkRecord.sourceApplicationName = safariSource.applicationName
+        linkRecord.searchableText += "\nSafari"
+        let link = try await repository.save(payload: linkPayload, metadata: linkRecord)
+
+        let textPayload = ClipboardPayload.text("Swift notes")
+        var textRecord = makeRecord(payload: textPayload, title: "Swift notes")
+        textRecord.sourceBundleIdentifier = "com.apple.Notes"
+        textRecord.sourceApplicationName = "Notes"
+        textRecord.searchableText += "\nNotes"
+        _ = try await repository.save(payload: textPayload, metadata: textRecord)
+
+        let filters = ClipboardSearchFilters(
+            kinds: [.link],
+            source: safariSource,
+            date: .today
+        )
+        let filtered = try await repository.page(
+            query: "swift",
+            filters: filters,
+            offset: 0
+        )
+        let sources = try await repository.sourceApplications()
+
+        XCTAssertEqual(filtered.records.map(\.id), [link.id])
+        XCTAssertTrue(sources.contains(safariSource))
+    }
+
     private func makeRecord(
         payload: ClipboardPayload,
         title: String

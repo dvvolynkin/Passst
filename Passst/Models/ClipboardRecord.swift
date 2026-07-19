@@ -10,6 +10,7 @@ struct ClipboardRecord: Codable, Hashable, Identifiable, Sendable {
     var searchableText: String
     var sourceBundleIdentifier: String?
     var sourceApplicationName: String?
+    var categoryID: UUID?
     var payloadFilename: String
     var thumbnailFilename: String?
     var payloadDigest: String
@@ -25,6 +26,7 @@ struct ClipboardRecord: Codable, Hashable, Identifiable, Sendable {
         searchableText: String,
         sourceBundleIdentifier: String?,
         sourceApplicationName: String?,
+        categoryID: UUID? = nil,
         payloadFilename: String,
         thumbnailFilename: String?,
         payloadDigest: String,
@@ -39,6 +41,7 @@ struct ClipboardRecord: Codable, Hashable, Identifiable, Sendable {
         self.searchableText = searchableText
         self.sourceBundleIdentifier = sourceBundleIdentifier
         self.sourceApplicationName = sourceApplicationName
+        self.categoryID = categoryID
         self.payloadFilename = payloadFilename
         self.thumbnailFilename = thumbnailFilename
         self.payloadDigest = payloadDigest

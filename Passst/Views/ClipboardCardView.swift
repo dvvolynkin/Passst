@@ -7,6 +7,10 @@ struct ClipboardCardView: View {
     let record: ClipboardRecord
 
     @State private var isHovered = false
+    @State private var renamePresented = false
+    @State private var renameTitle = ""
+    @State private var categoryCreatorPresented = false
+    @State private var categoryName = ""
 
     private var isSelected: Bool {
         model.selection.selectedIDs.contains(record.id)
@@ -17,7 +21,10 @@ struct ClipboardCardView: View {
     }
 
     private var accent: Color {
-        Color(
+        if let category = model.category(for: record) {
+            return Color(categoryHex: category.colorHex)
+        }
+        return Color(
             nsColor: AppIconProvider.shared.accentColor(
                 bundleIdentifier: record.sourceBundleIdentifier,
                 fallback: record.kind.fallbackAccent
@@ -69,6 +76,13 @@ struct ClipboardCardView: View {
         .onHover { hovering in
             isHovered = hovering
         }
+        .onDrag {
+            if !isSelected {
+                model.select(record: record, command: false, shift: false)
+            }
+            return model.dragItemProvider(for: record)
+        }
+        .help("Drag to another app or onto a pinboard")
         .onTapGesture(count: 2) {
             if !isSelected {
                 model.select(record: record, command: false, shift: false)
@@ -84,12 +98,6 @@ struct ClipboardCardView: View {
             )
         }
         .contextMenu {
-            Button(record.kind == .link ? "Copy Link" : "Copy") {
-                if !isSelected {
-                    model.select(record: record, command: false, shift: false)
-                }
-                model.copySelection()
-            }
             Button(record.kind == .link ? "Paste Link" : "Paste") {
                 if !isSelected {
                     model.select(record: record, command: false, shift: false)
@@ -102,6 +110,48 @@ struct ClipboardCardView: View {
                 }
                 model.pasteSelection(plainText: true)
             }
+            Button(record.kind == .link ? "Copy Link" : "Copy") {
+                if !isSelected {
+                    model.select(record: record, command: false, shift: false)
+                }
+                model.copySelection()
+            }
+            Divider()
+            Button("Rename…") {
+                renameTitle = record.displayTitle
+                renamePresented = true
+            }
+            Menu("Pin") {
+                if record.categoryID != nil {
+                    Button {
+                        model.assign(record, to: nil)
+                    } label: {
+                        Label("Unpin", systemImage: "pin.slash")
+                    }
+                    Divider()
+                }
+
+                if !model.categories.isEmpty {
+                    ForEach(model.categories) { category in
+                        Button {
+                            model.assign(record, to: category)
+                        } label: {
+                            Label(
+                                category.name,
+                                systemImage: record.categoryID == category.id
+                                    ? "checkmark.circle.fill"
+                                    : "pin.fill"
+                            )
+                        }
+                    }
+                    Divider()
+                }
+
+                Button("New Pinboard…") {
+                    categoryName = ""
+                    categoryCreatorPresented = true
+                }
+            }
             Divider()
             Button("Delete", role: .destructive) {
                 if !isSelected {
@@ -110,31 +160,79 @@ struct ClipboardCardView: View {
                 model.deleteSelection()
             }
         }
+        .alert("Rename Item", isPresented: $renamePresented) {
+            TextField("Title", text: $renameTitle)
+            Button("Cancel", role: .cancel) {}
+            Button("Rename") {
+                model.rename(record, to: renameTitle)
+            }
+            .disabled(
+                renameTitle
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .isEmpty
+            )
+        } message: {
+            Text("This changes only the title in Passst, not the original file.")
+        }
+        .alert("New Pinboard", isPresented: $categoryCreatorPresented) {
+            TextField("Name", text: $categoryName)
+            Button("Cancel", role: .cancel) {}
+            Button("Create") {
+                let color = ClipboardCategory.palette[
+                    model.categories.count % ClipboardCategory.palette.count
+                ]
+                if let category = model.addCategory(
+                    name: categoryName,
+                    colorHex: color
+                ) {
+                    model.assign(record, to: category)
+                }
+            }
+            .disabled(
+                categoryName
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .isEmpty
+            )
+        } message: {
+            Text("The new pinboard will be assigned to this item.")
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(record.kind.title), \(record.displayTitle)")
         .accessibilityHint(
             record.kind == .link
-                ? "Copies or pastes the web address, not its thumbnail"
-                : ""
+                ? "Drag, copy, or paste the web address, not its thumbnail"
+                : "Drag to another app or onto a pinboard"
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 7) {
-            Image(systemName: record.kind.symbolName)
-                .font(.system(size: 10, weight: .bold))
-            Text(record.kind.title)
-                .font(.system(size: 10.5, weight: .semibold))
-                .tracking(0.22)
-            Text("·")
-                .foregroundStyle(.secondary)
-            Text(record.updatedAt, style: .relative)
-                .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 44)
+        VStack(alignment: .leading, spacing: 3) {
+            Text(record.displayTitle)
+                .font(.system(size: 12.5, weight: .bold))
+                .foregroundStyle(.primary.opacity(0.88))
+                .lineLimit(1)
+                .padding(.trailing, 48)
+
+            HStack(alignment: .center, spacing: 5) {
+                Image(systemName: record.kind.symbolName)
+                    .font(.system(size: 9, weight: .bold))
+                Text(record.kind.title)
+                    .font(.system(size: 10, weight: .semibold))
+
+                Text("·")
+                    .foregroundStyle(.secondary)
+
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    Text(compactAge(at: context.date))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 44)
+            }
+            .foregroundStyle(accent)
         }
-        .foregroundStyle(accent)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 14)
         .padding(.trailing, 8)
         .background(
@@ -146,6 +244,31 @@ struct ClipboardCardView: View {
                 startPoint: .leading,
                 endPoint: .trailing
             )
+        )
+    }
+
+    private func compactAge(at now: Date) -> String {
+        let interval = max(0, now.timeIntervalSince(record.updatedAt))
+        if interval < 60 {
+            return "Now"
+        }
+        let minutes = Int(interval / 60)
+        if minutes < 60 {
+            return "\(minutes) min"
+        }
+        let hours = Int(interval / 3_600)
+        if hours < 24 {
+            return "\(hours) h"
+        }
+        if Calendar.autoupdatingCurrent.isDateInYesterday(record.updatedAt) {
+            return "Yesterday"
+        }
+        let days = Int(interval / 86_400)
+        if days < 7 {
+            return "\(days) d"
+        }
+        return record.updatedAt.formatted(
+            .dateTime.month(.abbreviated).day()
         )
     }
 
@@ -240,11 +363,6 @@ private struct TextCardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            if record.displayTitle != record.previewText {
-                Text(record.displayTitle)
-                    .font(.system(size: 15, weight: .bold))
-                    .lineLimit(2)
-            }
             Text(record.previewText)
                 .font(.system(size: 13.5, weight: .regular, design: .default))
                 .lineSpacing(2.6)
@@ -439,9 +557,9 @@ private struct FilePreviewView: View {
             .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(record.displayTitle)
-                    .font(.system(size: 15, weight: .bold))
-                    .lineLimit(3)
+                Label("Original file", systemImage: "arrow.up.right.square")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(accent)
                 Text(parentPath ?? record.previewText)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)

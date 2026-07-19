@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.1.4-macos-universal.dmg"><strong>Download for macOS</strong></a>
+  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.0-macos-universal.dmg"><strong>Download for macOS</strong></a>
   ·
   <a href="#quick-start">Quick start</a>
   ·
@@ -32,7 +32,7 @@ selected and ready to copy or paste.
 
 ## Quick start
 
-1. Download **Passst 0.1.4** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
+1. Download **Passst 0.2.0** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
 2. Open the DMG and drag Passst to **Applications**.
 3. This first release is ad-hoc signed but not notarized. Control-click Passst and choose
    **Open**. If macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
@@ -44,10 +44,17 @@ Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 ## The clipboard, without the clutter
 
 - **Search immediately.** Start typing or press `Command+F`; results update as you type.
+- **Filter precisely.** Narrow results by content type, source app, or date with removable
+  filters and type-ahead suggestions.
+- **Organize with Pinboards.** Create color-coded collections, then pin an item from its menu
+  or drag it directly onto a pinboard.
 - **Preview before pasting.** Press `Space` for a large text, image, link, or file preview.
 - **Select in order.** Use `Command`-click for individual items or `Shift` to extend a range.
 - **Paste where you were.** `Enter` returns to the previous app and sends `Command+V`.
 - **Keep formatting—or do not.** `Shift+Enter` pastes the selection as plain text.
+- **Drag it anywhere.** Drag text, links, images, and original files into another app.
+- **Name it clearly.** File and image cards use the original filename when available; any
+  item can also be renamed inside Passst.
 - **Stay local.** History and its full-text index live on this Mac.
 
 ### Light and dark
@@ -60,8 +67,19 @@ Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 
 ![Searching clipboard history in Passst](docs/assets/search.jpg)
 
-Click anywhere in the search capsule, start typing, or use `Command+F`. The first `Escape`
-clears and collapses search; the next closes Passst.
+Click the search icon, start typing, or use `Command+F`. Suggestions can turn a phrase such
+as `link` or `last week` into an active filter. The filter menu exposes content type, source
+app, and date; each active chip can be removed without clearing the text query. The first
+`Escape` clears search and filters; the next closes Passst.
+
+### Pinboards and drag-and-drop
+
+Pinboards share the compact top bar with search. Use `+` to create one, choose its color,
+and pin an item from the card menu—or drag the card onto the pinboard. An item belongs to
+one pinboard at a time. Deleting a pinboard keeps its clipboard items in the main history.
+
+Cards can also be dragged out of Passst. Files preserve the original file URL, images use
+their full-resolution PNG representation, links remain URLs, and text stays text.
 
 ### Large preview
 
@@ -107,6 +125,9 @@ Passst keeps the original pasteboard representations and builds a suitable card 
 
 Every card records the source application name and icon when macOS makes that information
 available. Copying the same payload again moves its existing record to the front.
+
+Right-click a card to paste it, paste it as plain text, copy it, rename its Passst title,
+pin or unpin it, or delete it. Renaming does not rename the original file.
 
 ## Accessibility
 
@@ -189,7 +210,7 @@ swift test
 To create the Universal 2 application, DMG, ZIP, and checksums:
 
 ```sh
-scripts/package-app.sh release 0.1.4 5
+scripts/package-app.sh release 0.2.0 6
 ```
 
 The repository contains both `Package.swift` and `project.yml`. GRDB provides SQLite and
@@ -197,8 +218,9 @@ full-text search; KeyboardShortcuts manages the configurable global shortcut.
 
 ## Scope
 
-The first release intentionally focuses on clipboard history, search, previews, selection,
-copy, and paste. Pinboards, cloud sync, OCR, Paste Stack, and item editing are not included.
+Passst is intentionally local-first. Clipboard history, filtered search, Pinboards,
+drag-and-drop, previews, selection, copy, and paste are included. Cloud sync, OCR, and a
+cross-device Paste Stack are not.
 
 ## License
 

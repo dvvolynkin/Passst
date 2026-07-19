@@ -20,7 +20,7 @@
 <p align="center">
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111827?style=flat-square&logo=apple">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white">
-  <img alt="Universal 2" src="https://img.shields.io/badge/Universal-2-315CF3?style=flat-square">
+  <strong>Universal 2 · arm64 + x86_64</strong>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square"></a>
 </p>
 

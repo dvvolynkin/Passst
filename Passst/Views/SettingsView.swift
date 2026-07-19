@@ -63,6 +63,12 @@ struct SettingsView: View {
                 )
 
                 Toggle("Play sound when copying", isOn: $copySoundEnabled)
+                    .onChange(of: copySoundEnabled) { _, enabled in
+                        if enabled {
+                            CopyFeedbackPlayer.shared.play()
+                        }
+                    }
+                    .help("Play feedback after Passst copies or pastes a selection")
             }
 
             Section("Direct Paste") {

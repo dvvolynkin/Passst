@@ -6,8 +6,13 @@ final class CopyFeedbackPlayer {
     static let shared = CopyFeedbackPlayer()
 
     private lazy var sound: NSSound? = {
-        let sound = NSSound(named: NSSound.Name("Pop"))
-        sound?.volume = 0.32
+        let systemSoundURL = URL(
+            fileURLWithPath: "/System/Library/Sounds/Pop.aiff",
+            isDirectory: false
+        )
+        let sound = NSSound(contentsOf: systemSoundURL, byReference: true)
+            ?? NSSound(named: NSSound.Name("Pop"))
+        sound?.volume = 0.52
         return sound
     }()
 

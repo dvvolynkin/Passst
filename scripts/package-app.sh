@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR="${0:A:h:h}"
 CONFIGURATION="${1:-release}"
-VERSION="${2:-0.1.0}"
-BUILD_NUMBER="${3:-1}"
+VERSION="${2:-0.1.1}"
+BUILD_NUMBER="${3:-2}"
 ARM64_BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/$CONFIGURATION"
 X86_64_BUILD_DIR="$ROOT_DIR/.build/x86_64-apple-macosx/$CONFIGURATION"
 APP_DIR="$ROOT_DIR/dist/Passst.app"
@@ -16,8 +16,29 @@ ZIP_PATH="$ROOT_DIR/dist/Passst-$VERSION-macos-universal.zip"
 DMG_PATH="$ROOT_DIR/dist/Passst-$VERSION-macos-universal.dmg"
 CHECKSUM_PATH="$ROOT_DIR/dist/Passst-$VERSION-SHA256SUMS.txt"
 DMG_STAGING_DIR="$ROOT_DIR/dist/.dmg-staging"
+KEYBOARD_SHORTCUTS_CHECKOUT="$ROOT_DIR/.build/checkouts/KeyboardShortcuts"
+KEYBOARD_SHORTCUTS_UTILITIES="$KEYBOARD_SHORTCUTS_CHECKOUT/Sources/KeyboardShortcuts/Utilities.swift"
+KEYBOARD_SHORTCUTS_PATCH="$ROOT_DIR/scripts/keyboard-shortcuts-resource-bundle.patch"
 
 cd "$ROOT_DIR"
+swift package resolve
+
+# SwiftPM's generated Bundle.module accessor assumes resource bundles live at
+# the root of Bundle.main. That is valid for a command-line executable but not
+# for a strictly signed macOS .app, where resources belong in
+# Contents/Resources. Teach KeyboardShortcuts to load its localization bundle
+# from the standard app resource directory.
+if grep -Fq 'bundle: .module' "$KEYBOARD_SHORTCUTS_UTILITIES"; then
+    patch -s -d "$KEYBOARD_SHORTCUTS_CHECKOUT" -p1 < "$KEYBOARD_SHORTCUTS_PATCH"
+elif ! grep -q 'keyboardShortcutsResources' "$KEYBOARD_SHORTCUTS_UTILITIES"; then
+    echo "KeyboardShortcuts resource patch does not match the resolved source." >&2
+    exit 1
+fi
+
+rm -rf \
+    "$ARM64_BUILD_DIR/Passst_Passst.bundle" \
+    "$X86_64_BUILD_DIR/Passst_Passst.bundle"
+
 swift build -c "$CONFIGURATION" --arch arm64
 swift build -c "$CONFIGURATION" --arch x86_64
 
@@ -31,6 +52,7 @@ lipo \
     -output "$MACOS_DIR/Passst"
 cp "$ROOT_DIR/Passst/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Passst/Resources/Passst.icns" "$RESOURCES_DIR/Passst.icns"
+cp "$ROOT_DIR/Passst/Resources/PassstMenuBarTemplate.png" "$RESOURCES_DIR/PassstMenuBarTemplate.png"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable Passst" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier app.passst.mac" "$CONTENTS_DIR/Info.plist"
@@ -42,6 +64,16 @@ cp "$ROOT_DIR/Passst/Resources/Passst.icns" "$RESOURCES_DIR/Passst.icns"
 for bundle in "$ARM64_BUILD_DIR"/*.bundle; do
     if [[ -d "$bundle" ]]; then
         ditto "$bundle" "$RESOURCES_DIR/${bundle:t}"
+    fi
+done
+
+for required_bundle in \
+    GRDB_GRDB.bundle \
+    KeyboardShortcuts_KeyboardShortcuts.bundle
+do
+    if [[ ! -d "$RESOURCES_DIR/$required_bundle" ]]; then
+        echo "Missing required SwiftPM resource bundle: $required_bundle" >&2
+        exit 1
     fi
 done
 

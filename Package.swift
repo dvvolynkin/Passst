@@ -27,10 +27,8 @@ let package = Package(
             path: "Passst",
             exclude: [
                 "Info.plist",
-                "Passst.entitlements"
-            ],
-            resources: [
-                .process("Resources")
+                "Passst.entitlements",
+                "Resources"
             ]
         ),
         .testTarget(

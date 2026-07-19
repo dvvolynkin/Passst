@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 enum PassstBrandAssets {
     static let monochromeMark: NSImage = {
-        guard let url = Bundle.module.url(
+        guard let url = Bundle.main.url(
             forResource: "PassstMenuBarTemplate",
             withExtension: "png"
         ), let image = NSImage(contentsOf: url) else {

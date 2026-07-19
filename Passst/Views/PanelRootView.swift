@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PanelRootView: View {
     @Bindable var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -10,11 +11,8 @@ struct PanelRootView: View {
 
             VStack(spacing: 0) {
                 PanelToolbar(model: model)
-                    .frame(height: 62)
+                    .frame(height: PassstStyle.toolbarHeight)
                     .zIndex(30)
-
-                Divider()
-                    .overlay(Color.white.opacity(0.12))
 
                 history
             }
@@ -32,76 +30,33 @@ struct PanelRootView: View {
 
             if let notice = model.notice {
                 NoticeView(notice: notice)
-                    .padding(.top, 58)
+                    .padding(.top, PassstStyle.toolbarHeight - 2)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(20)
             }
         }
         .clipShape(panelShape)
-        .overlay {
-            panelShape
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(0.32),
-                            .white.opacity(0.08),
-                            .white.opacity(0.22)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .topTrailing
-                    ),
-                    lineWidth: 0.75
-                )
-        }
         .ignoresSafeArea()
     }
 
-    private var panelShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 28,
-            bottomLeadingRadius: 28,
-            bottomTrailingRadius: 28,
-            topTrailingRadius: 28
+    private var panelShape: RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: PassstStyle.panelCornerRadius,
+            style: .continuous
         )
     }
 
     private var panelBackground: some View {
         ZStack {
             VisualEffectView(material: .underWindowBackground)
-
-            if #available(macOS 26.0, *) {
-                panelShape
-                    .fill(.clear)
-                    .glassEffect(.regular, in: panelShape)
-            }
-
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor).opacity(0.12),
-                    Color(nsColor: .windowBackgroundColor).opacity(0.055),
-                    Color.accentColor.opacity(0.025)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            if #unavailable(macOS 26.0) {
-                LinearGradient(
-                    colors: [
-                        Color.white.opacity(0.045),
-                        Color.black.opacity(0.02)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
+            Color.black.opacity(colorScheme == .dark ? 0.14 : 0.015)
         }
     }
 
     private var history: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 14) {
+                LazyHStack(spacing: PassstStyle.cardSpacing) {
                     if model.records.isEmpty, !model.isLoading {
                         emptyState
                     }
@@ -130,12 +85,11 @@ struct PanelRootView: View {
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal, 24)
-                .padding(.top, 10)
-                .padding(.bottom, 20)
+                .padding(.horizontal, PassstStyle.panelHorizontalPadding)
+                .padding(.top, PassstStyle.historyTopPadding)
+                .padding(.bottom, PassstStyle.historyBottomPadding)
             }
             .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
             .onChange(of: model.selection.focusedID) { _, focusedID in
                 guard let focusedID else { return }
                 withAnimation(

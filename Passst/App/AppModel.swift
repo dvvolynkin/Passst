@@ -975,6 +975,11 @@ final class AppModel {
                         sourceBundleIdentifier: bundleIdentifier,
                         sourceApplicationName: applicationName
                     )
+                    if applicationName == "Terminal" {
+                        metadata.displayTitle = "ClipboardItem model"
+                    } else if applicationName == "TextEdit" {
+                        metadata.displayTitle = "Clipboard search"
+                    }
                     metadata.categoryID = categoryID
                     _ = try await repository.save(payload: payload, metadata: metadata)
                 }

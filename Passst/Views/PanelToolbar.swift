@@ -3,7 +3,10 @@ import SwiftUI
 
 struct PanelToolbar: View {
     @Bindable var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var searchFocused: Bool
+    @State private var hoveredSuggestionID: String?
+    @State private var toolbarMenuHovered = false
 
     private enum FilterSuggestion: Identifiable {
         case kind(ClipboardContentKind)
@@ -53,52 +56,41 @@ struct PanelToolbar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: 10) {
-                ZStack(alignment: .topLeading) {
+            ZStack {
+                HStack(spacing: 12) {
                     searchCapsule(availableWidth: geometry.size.width)
-
-                    if !filterSuggestions.isEmpty {
-                        suggestionsPanel
-                            .offset(y: 45)
-                            .zIndex(40)
-                            .transition(
-                                .move(edge: .top)
-                                    .combined(with: .opacity)
-                            )
+                        .overlay(alignment: .topLeading) {
+                        if !filterSuggestions.isEmpty {
+                            suggestionsPanel
+                                .offset(y: 46)
+                                .zIndex(40)
+                                .transition(
+                                    .move(edge: .top)
+                                        .combined(with: .opacity)
+                                )
+                        }
                     }
+                    .zIndex(40)
+
+                    CategoryBar(model: model, compact: searchExpanded)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(maxHeight: 40)
                 }
-                .zIndex(40)
+                .frame(maxWidth: geometry.size.width - 96, alignment: .center)
+                .zIndex(20)
 
-                CategoryBar(model: model)
-                    .frame(maxWidth: .infinity, maxHeight: 44, alignment: .leading)
-                    .layoutPriority(searchExpanded ? 0 : 1)
-
-                HStack(spacing: 7) {
-                    toolbarButton(
-                        symbol: model.monitorPaused ? "play.fill" : "pause.fill",
-                        help: model.monitorPaused
-                            ? "Resume clipboard history"
-                            : "Pause clipboard history"
-                    ) {
-                        model.toggleMonitoring()
-                    }
-
-                    toolbarButton(symbol: "gearshape.fill", help: "Settings") {
-                        model.showSettings()
-                    }
+                HStack {
+                    Spacer()
+                    toolbarMenu
                 }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onChange(of: model.isSearchFocused) { _, focused in
             if focused {
                 Task { @MainActor in
-                    do {
-                        try await Task.sleep(for: .milliseconds(55))
-                    } catch {
-                        return
-                    }
+                    await Task.yield()
                     guard model.isSearchFocused else { return }
                     searchFocused = true
                 }
@@ -111,16 +103,16 @@ struct PanelToolbar: View {
 
     private func searchCapsule(availableWidth: CGFloat) -> some View {
         let width = searchExpanded
-            ? min(660, max(420, availableWidth * 0.46))
-            : 36
+            ? min(520, max(400, availableWidth * 0.34))
+            : 32
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: 9) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(
                     searchActive
                         ? Color.accentColor
-                        : Color.secondary
+                        : Color.primary.opacity(0.64)
                 )
 
             if searchExpanded {
@@ -130,7 +122,7 @@ struct PanelToolbar: View {
             if searchExpanded {
                 TextField("Search history", text: $model.searchQuery)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13.5, weight: .medium))
+                    .font(.system(size: 15, weight: .regular))
                     .focused($searchFocused)
                     .tint(Color.accentColor)
                     .frame(maxWidth: .infinity)
@@ -144,7 +136,8 @@ struct PanelToolbar: View {
                     searchFocused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.primary.opacity(0.48))
                 }
                 .buttonStyle(.plain)
                 .help("Clear search")
@@ -156,27 +149,24 @@ struct PanelToolbar: View {
             }
         }
         .padding(.horizontal, searchExpanded ? 12 : 0)
-        .frame(width: width, height: 36)
+        .frame(width: width, height: searchExpanded ? 40 : 32)
         .background {
             if searchExpanded {
-                Capsule().fill(.thinMaterial)
+                Capsule().fill(
+                    Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07)
+                )
             }
         }
         .overlay {
-            if searchExpanded {
+            if searchExpanded && model.isSearchFocused {
                 Capsule()
-                    .stroke(
-                        model.isSearchFocused
-                            ? Color.accentColor
-                            : Color.white.opacity(0.16),
-                        lineWidth: model.isSearchFocused ? 2.4 : 0.7
-                    )
+                    .stroke(Color.accentColor, lineWidth: 2.5)
             }
         }
         .shadow(
-            color: .black.opacity(searchExpanded ? 0.11 : 0),
-            radius: 8,
-            y: 3
+            color: .black.opacity(model.isSearchFocused ? 0.11 : 0),
+            radius: 10,
+            y: 4
         )
         .contentShape(Capsule())
         .onTapGesture {
@@ -228,21 +218,17 @@ struct PanelToolbar: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Image(systemName: symbol)
-                    .font(.system(size: 9.5, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                 Text(title)
                     .lineLimit(1)
                 Image(systemName: "xmark")
-                    .font(.system(size: 7.5, weight: .bold))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
-            .font(.system(size: 10.5, weight: .semibold))
-            .padding(.horizontal, 7)
-            .frame(height: 24)
-            .background(Color.accentColor.opacity(0.14), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color.accentColor.opacity(0.34), lineWidth: 0.7)
-            }
+            .font(.system(size: 12.5, weight: .medium))
+            .padding(.horizontal, 9)
+            .frame(height: 28)
+            .background(Color.accentColor.opacity(0.16), in: Capsule())
         }
         .buttonStyle(.plain)
         .help("Remove \(title) filter")
@@ -329,13 +315,13 @@ struct PanelToolbar: View {
             }
         } label: {
             Image(systemName: "line.3.horizontal.decrease")
-                .font(.system(size: 11.5, weight: .semibold))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(
                     model.hasActiveSearchFilters
                         ? Color.accentColor
                         : Color.secondary
                 )
-                .frame(width: 23, height: 23)
+                .frame(width: 28, height: 28)
                 .background(
                     model.hasActiveSearchFilters
                         ? Color.accentColor.opacity(0.13)
@@ -395,33 +381,35 @@ struct PanelToolbar: View {
                 Button {
                     apply(suggestion)
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Image(systemName: suggestion.symbolName)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Color.accentColor)
-                            .frame(width: 16)
+                            .frame(width: 18)
                         Text(suggestion.title)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 14, weight: .regular))
                         Spacer()
-                        Text("Filter")
-                            .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundStyle(.tertiary)
                     }
-                    .padding(.horizontal, 10)
-                    .frame(height: 30)
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(
+                        Color.accentColor.opacity(
+                            hoveredSuggestionID == suggestion.id ? 0.13 : 0
+                        ),
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { isHovered in
+                    hoveredSuggestionID = isHovered ? suggestion.id : nil
+                }
             }
         }
-        .padding(5)
+        .padding(6)
         .frame(width: 280)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 13))
-        .overlay {
-            RoundedRectangle(cornerRadius: 13)
-                .stroke(Color.white.opacity(0.2), lineWidth: 0.7)
-        }
-        .shadow(color: .black.opacity(0.2), radius: 14, y: 7)
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
     }
 
     private func apply(_ suggestion: FilterSuggestion) {
@@ -437,21 +425,44 @@ struct PanelToolbar: View {
         searchFocused = true
     }
 
-    private func toolbarButton(
-        symbol: String,
-        help: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 30, height: 30)
-                .background(.thinMaterial, in: Circle())
-                .overlay {
-                    Circle().stroke(.white.opacity(0.16), lineWidth: 0.7)
-                }
+    private var toolbarMenu: some View {
+        Menu {
+            Button {
+                model.toggleMonitoring()
+            } label: {
+                Label(
+                    model.monitorPaused
+                        ? "Resume Clipboard History"
+                        : "Pause Clipboard History",
+                    systemImage: model.monitorPaused ? "play.fill" : "pause.fill"
+                )
+            }
+
+            Divider()
+
+            Button {
+                model.showSettings()
+            } label: {
+                Label("Settings…", systemImage: "gearshape")
+            }
+        } label: {
+            Image(systemName: model.monitorPaused ? "play.fill" : "ellipsis")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(
+                    model.monitorPaused
+                        ? Color.orange
+                        : Color.primary.opacity(0.66)
+                )
+                .frame(width: 32, height: 32)
+                .background(
+                    Color.primary.opacity(toolbarMenuHovered ? 0.075 : 0),
+                    in: Circle()
+                )
         }
-        .buttonStyle(.plain)
-        .help(help)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .onHover { toolbarMenuHovered = $0 }
+        .help(model.monitorPaused ? "History paused" : "Passst menu")
     }
 }

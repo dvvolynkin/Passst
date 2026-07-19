@@ -1,0 +1,175 @@
+import AppKit
+import XCTest
+@testable import Passst
+
+@MainActor
+final class ClipboardPayloadTests: XCTestCase {
+    func testTextRoundTripThroughPasteboard() throws {
+        let pasteboard = NSPasteboard(name: .init("app.passst.tests.\(UUID().uuidString)"))
+        let codec = PasteboardCodec()
+        let original = ClipboardPayload.text("Привет, clipboard")
+
+        _ = try codec.write(original, to: pasteboard)
+        let captured = try codec.capture(from: pasteboard)
+
+        XCTAssertEqual(captured.plainText, "Привет, clipboard")
+        XCTAssertEqual(
+            captured.items.first?.representation(for: .string)?.data,
+            Data("Привет, clipboard".utf8)
+        )
+    }
+
+    func testDigestIsStableAcrossRepresentationOrdering() {
+        let text = PasteboardRepresentation(type: .string, data: Data("Value".utf8))
+        let html = PasteboardRepresentation(
+            type: .html,
+            data: Data("<b>Value</b>".utf8)
+        )
+        let first = ClipboardPayload(
+            items: [ClipboardPayloadItem(representations: [text, html])],
+            plainText: "Value"
+        )
+        let second = ClipboardPayload(
+            items: [ClipboardPayloadItem(representations: [html, text])],
+            plainText: "Value"
+        )
+
+        XCTAssertEqual(first.stableDigest, second.stableDigest)
+    }
+
+    func testConcealedPayloadIsIgnored() {
+        let pasteboard = NSPasteboard(name: .init("app.passst.tests.\(UUID().uuidString)"))
+        let item = NSPasteboardItem()
+        item.setString(
+            "secret",
+            forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+        )
+        pasteboard.clearContents()
+        pasteboard.writeObjects([item])
+
+        XCTAssertThrowsError(try PasteboardCodec().capture(from: pasteboard)) { error in
+            guard case PasteboardCodec.CodecError.concealedContent = error else {
+                return XCTFail("Expected concealedContent, got \(error)")
+            }
+        }
+    }
+
+    func testClassifiesLinkColorAndFiles() {
+        XCTAssertEqual(
+            ClipboardPayloadClassifier.kind(for: .text("https://pasteapp.io/help")),
+            .link
+        )
+        XCTAssertEqual(
+            ClipboardPayloadClassifier.kind(for: .text("#5A67D8")),
+            .color
+        )
+
+        let url = URL(fileURLWithPath: "/tmp/Document.pdf")
+        let files = ClipboardPayload(
+            items: [
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(
+                            type: .fileURL,
+                            data: Data(url.absoluteString.utf8)
+                        )
+                    ]
+                )
+            ],
+            plainText: url.path,
+            fileURLs: [url]
+        )
+        XCTAssertEqual(ClipboardPayloadClassifier.kind(for: files), .files)
+    }
+
+    func testClassifiesSourceCodeWithoutTreatingProseAsCode() {
+        XCTAssertEqual(
+            ClipboardPayloadClassifier.kind(
+                for: .text(
+                    """
+                    struct ClipboardItem {
+                        let value: String
+                    }
+                    """
+                )
+            ),
+            .code
+        )
+        XCTAssertEqual(
+            ClipboardPayloadClassifier.kind(
+                for: .text("Обычный текст с несколькими словами")
+            ),
+            .text
+        )
+    }
+
+    func testImageRepresentationWinsOverImageFileURLFallback() {
+        let url = URL(fileURLWithPath: "/tmp/telegram-photo.jpg")
+        let payload = ClipboardPayload(
+            items: [
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(
+                            type: .fileURL,
+                            data: Data(url.absoluteString.utf8)
+                        )
+                    ]
+                ),
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(
+                            type: .tiff,
+                            data: Data([0x49, 0x49, 0x2A, 0x00])
+                        )
+                    ]
+                )
+            ],
+            plainText: url.lastPathComponent,
+            fileURLs: [url]
+        )
+
+        XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .image)
+    }
+
+    func testImageRepresentationSupportsGenericImageUTIs() {
+        let payload = ClipboardPayload(
+            items: [
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(
+                            typeIdentifier: "public.jpeg",
+                            data: Data([0xFF, 0xD8, 0xFF])
+                        ),
+                        PasteboardRepresentation(
+                            type: .string,
+                            data: Data("photo.jpg".utf8)
+                        )
+                    ]
+                )
+            ],
+            plainText: "photo.jpg"
+        )
+
+        XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .image)
+    }
+
+    func testImageWithNonImageFileRemainsMixed() {
+        let url = URL(fileURLWithPath: "/tmp/document.pdf")
+        let payload = ClipboardPayload(
+            items: [
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(type: .tiff, data: Data([0x49, 0x49])),
+                        PasteboardRepresentation(
+                            type: .fileURL,
+                            data: Data(url.absoluteString.utf8)
+                        )
+                    ]
+                )
+            ],
+            fileURLs: [url]
+        )
+
+        XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .mixed)
+    }
+}

@@ -1,0 +1,24 @@
+{
+  "originHash" : "bdfdcf5fb2fe13fb84c110ccefe010b00b75099ffc06fc96f86b5b11d07db9d9",
+  "pins" : [
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift.git",
+      "state" : {
+        "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212",
+        "version" : "7.11.1"
+      }
+    },
+    {
+      "identity" : "keyboardshortcuts",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/KeyboardShortcuts.git",
+      "state" : {
+        "revision" : "de5b143889b9aa90a997b18e311527095dfb28e0",
+        "version" : "1.12.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -393,13 +393,17 @@ final class AppModel {
         if sourceApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
             return
         }
-        let metadata = ClipboardPayloadClassifier.makeRecord(
-            for: payload,
-            sourceApplication: sourceApplication
-        )
         Task {
             do {
-                let saved = try await repository.save(payload: payload, metadata: metadata)
+                let storedPayload = await WebImageMaterializer.materialize(payload)
+                let metadata = ClipboardPayloadClassifier.makeRecord(
+                    for: storedPayload,
+                    sourceApplication: sourceApplication
+                )
+                let saved = try await repository.save(
+                    payload: storedPayload,
+                    metadata: metadata
+                )
                 if searchQuery.isEmpty {
                     withAnimation(
                         reduceMotion ? .easeOut(duration: 0.12) : .smooth(duration: 0.18)

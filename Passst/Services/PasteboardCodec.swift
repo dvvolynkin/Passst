@@ -77,6 +77,9 @@ final class PasteboardCodec {
                 fileURLs.append(url)
             }
 
+            representations = ImageRepresentationNormalizer
+                .addingPortablePNGIfNeeded(to: representations)
+
             if !representations.isEmpty {
                 payloadItems.append(ClipboardPayloadItem(representations: representations))
             }

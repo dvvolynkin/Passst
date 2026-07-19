@@ -30,7 +30,8 @@ struct ClipboardCardView: View {
             header
                 .frame(height: 52)
             content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity)
+                .frame(height: 168)
         }
         .frame(width: 236, height: 220)
         .background(cardBackground)

@@ -153,6 +153,56 @@ final class ClipboardPayloadTests: XCTestCase {
         XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .image)
     }
 
+    func testCaptureAddsPortablePNGForGenericImageRepresentation() throws {
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: 2,
+            pixelsHigh: 2,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        )
+        let jpeg = try XCTUnwrap(
+            bitmap?.representation(using: .jpeg, properties: [.compressionFactor: 0.8])
+        )
+        let pasteboard = NSPasteboard(name: .init("app.passst.tests.\(UUID().uuidString)"))
+        let item = NSPasteboardItem()
+        item.setData(jpeg, forType: .init("public.jpeg"))
+        pasteboard.clearContents()
+        pasteboard.writeObjects([item])
+
+        let payload = try PasteboardCodec().capture(from: pasteboard)
+
+        XCTAssertNotNil(payload.representationData(for: .png))
+        XCTAssertEqual(ClipboardPayloadClassifier.kind(for: payload), .image)
+    }
+
+    func testExtractsWebImageURLFromCopiedHTML() {
+        let html = """
+        <a href="https://youtube.com/watch?v=abc">
+          <img src="https://i.ytimg.com/vi/abc/hqdefault.jpg?a=1&amp;b=2">
+        </a>
+        """
+        let payload = ClipboardPayload(
+            items: [
+                ClipboardPayloadItem(
+                    representations: [
+                        PasteboardRepresentation(type: .html, data: Data(html.utf8))
+                    ]
+                )
+            ]
+        )
+
+        XCTAssertEqual(
+            payload.referencedWebImageURL?.absoluteString,
+            "https://i.ytimg.com/vi/abc/hqdefault.jpg?a=1&b=2"
+        )
+    }
+
     func testImageWithNonImageFileRemainsMixed() {
         let url = URL(fileURLWithPath: "/tmp/document.pdf")
         let payload = ClipboardPayload(

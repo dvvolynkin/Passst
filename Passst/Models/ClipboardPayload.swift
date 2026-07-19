@@ -86,6 +86,45 @@ struct ClipboardPayload: Codable, Hashable, Sendable {
             }?
             .data
     }
+
+    var referencedWebImageURL: URL? {
+        let htmlRepresentations = items
+            .lazy
+            .compactMap { $0.representation(for: .html)?.data }
+
+        for data in htmlRepresentations {
+            guard let html = String(data: data, encoding: .utf8) else { continue }
+            let patterns = [
+                #"<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']"#,
+                #"<img\b[^>]*\bdata-src\s*=\s*["']([^"']+)["']"#
+            ]
+            for pattern in patterns {
+                guard let match = html.range(
+                    of: pattern,
+                    options: [.regularExpression, .caseInsensitive]
+                ) else {
+                    continue
+                }
+                let element = String(html[match])
+                guard let valueRange = element.range(
+                    of: #"https?://[^"']+"#,
+                    options: [.regularExpression, .caseInsensitive]
+                ) else {
+                    continue
+                }
+                let value = element[valueRange]
+                    .replacingOccurrences(of: "&amp;", with: "&")
+                    .replacingOccurrences(of: "&#38;", with: "&")
+                guard let url = URL(string: value),
+                      ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+                else {
+                    continue
+                }
+                return url
+            }
+        }
+        return nil
+    }
 }
 
 extension ClipboardPayload {

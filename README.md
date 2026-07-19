@@ -24,7 +24,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square"></a>
 </p>
 
-![Passst clipboard history illustration](docs/assets/passst-hero.png)
+![Passst clipboard history panel](docs/assets/panel-dark.jpg)
 
 Passst stays out of the way until you press `Shift+Command+V`. It opens as a full-width
 glass panel at the bottom of the current display, with the latest clipboard item already
@@ -42,8 +42,6 @@ selected and ready to copy or paste.
 Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 
 ## The clipboard, without the clutter
-
-![Search, multi-selection, and preview illustration](docs/assets/passst-features.png)
 
 - **Search immediately.** Start typing or press `Command+F`; results update as you type.
 - **Preview before pasting.** Press `Space` for a large text, image, link, or file preview.

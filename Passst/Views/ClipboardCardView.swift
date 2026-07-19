@@ -84,13 +84,13 @@ struct ClipboardCardView: View {
             )
         }
         .contextMenu {
-            Button("Copy") {
+            Button(record.kind == .link ? "Copy Link" : "Copy") {
                 if !isSelected {
                     model.select(record: record, command: false, shift: false)
                 }
                 model.copySelection()
             }
-            Button("Paste") {
+            Button(record.kind == .link ? "Paste Link" : "Paste") {
                 if !isSelected {
                     model.select(record: record, command: false, shift: false)
                 }
@@ -112,6 +112,11 @@ struct ClipboardCardView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(record.kind.title), \(record.displayTitle)")
+        .accessibilityHint(
+            record.kind == .link
+                ? "Copies or pastes the web address, not its thumbnail"
+                : ""
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -325,67 +330,81 @@ private struct LinkPreviewView: View {
     @State private var preview: LinkPreviewData?
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            if let image = preview?.image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+        HStack(alignment: .top, spacing: 11) {
+            VStack(alignment: .leading, spacing: 7) {
+                Label {
+                    Text(preview?.domain ?? domain)
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: "link")
+                }
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(accent)
 
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        .black.opacity(0.16),
-                        .black.opacity(0.76)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                Text(preview?.title ?? record.displayTitle)
+                    .font(.system(size: 14.5, weight: .bold))
+                    .lineLimit(3)
+                    .foregroundStyle(.primary)
 
-                previewText(
-                    title: preview?.title ?? record.displayTitle,
-                    domain: preview?.domain ?? domain
-                )
-                .foregroundStyle(.white)
-                .padding(14)
-            } else {
-                fallbackPreview
+                Spacer(minLength: 0)
+
+                Text("Copies URL, not the thumbnail")
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            previewThumbnail
+                .frame(width: 70, height: 104)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.28), lineWidth: 0.8)
+                }
+                .shadow(color: .black.opacity(0.13), radius: 5, y: 3)
+        }
+        .padding(13)
+        .background(
+            LinearGradient(
+                colors: [
+                    accent.opacity(0.13),
+                    Color(nsColor: .controlBackgroundColor).opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 9.5, weight: .bold))
+                .foregroundStyle(accent.opacity(0.78))
+                .padding(12)
         }
         .task(id: "\(record.id.uuidString)#\(model.mediaRefreshGeneration)") {
             preview = await LinkPreviewService.shared.preview(for: record.previewText)
         }
     }
 
-    private var fallbackPreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: "safari.fill")
-                .font(.system(size: 31, weight: .medium))
-                .foregroundStyle(accent)
-            Spacer(minLength: 0)
-            previewText(title: preview?.title ?? record.displayTitle, domain: domain)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
-        .background(
-            LinearGradient(
-                colors: [accent.opacity(0.12), accent.opacity(0.025)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-    }
-
-    private func previewText(title: String, domain: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .lineLimit(3)
-            Text(domain)
-                .font(.system(size: 11.5, weight: .medium))
-                .lineLimit(1)
-                .opacity(0.78)
+    @ViewBuilder
+    private var previewThumbnail: some View {
+        if let image = preview?.image {
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 70, height: 104)
+                .clipped()
+        } else {
+            ZStack {
+                LinearGradient(
+                    colors: [accent.opacity(0.24), accent.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Image(systemName: "safari.fill")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(accent)
+            }
         }
     }
 

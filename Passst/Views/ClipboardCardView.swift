@@ -25,17 +25,11 @@ struct ClipboardCardView: View {
         record.kind.cardAccent
     }
 
-    private var headerTextColor: Color {
-        record.kind.prefersDarkHeaderText
-            ? Color.black.opacity(0.86)
-            : Color.white.opacity(0.98)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             header
                 .frame(height: PassstStyle.cardHeaderHeight)
-                .background(accent)
+                .background(headerBackground)
             content
                 .frame(maxWidth: .infinity)
                 .frame(
@@ -51,16 +45,22 @@ struct ClipboardCardView: View {
             )
         )
         .overlay {
+            RoundedRectangle(
+                cornerRadius: PassstStyle.cardCornerRadius,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary.opacity(isSelected ? 0 : colorScheme == .dark ? 0.13 : 0.08),
+                lineWidth: 1
+            )
+
             if isSelected {
                 RoundedRectangle(
                     cornerRadius: PassstStyle.cardCornerRadius,
                     style: .continuous
                 )
-                .stroke(Color.accentColor, lineWidth: 2.5)
+                .stroke(PassstStyle.brandGradient, lineWidth: 2.5)
             }
-        }
-        .overlay(alignment: .topTrailing) {
-            applicationIconNotch
         }
         .overlay(alignment: .topLeading) {
             if let selectionIndex, model.selection.orderedIDs.count > 1 {
@@ -70,9 +70,11 @@ struct ClipboardCardView: View {
             }
         }
         .shadow(
-            color: .black.opacity(isHovered ? 0.18 : 0.13),
-            radius: isHovered ? 14 : 10,
-            y: isHovered ? 7 : 5
+            color: isSelected
+                ? PassstStyle.brandViolet.opacity(0.24)
+                : .black.opacity(isHovered ? 0.18 : 0.13),
+            radius: isSelected ? 16 : isHovered ? 14 : 10,
+            y: isSelected ? 6 : isHovered ? 7 : 5
         )
         .offset(y: isHovered ? -2 : 0)
         .animation(.smooth(duration: 0.12), value: isHovered)
@@ -95,7 +97,7 @@ struct ClipboardCardView: View {
             }
             return model.dragItemProvider(for: record)
         }
-        .help("Drag to another app or onto a pinboard")
+        .help("Drag to another app or onto a tag")
         .onTapGesture(count: 2) {
             if !isSelected {
                 model.select(record: record, command: false, shift: false)
@@ -134,12 +136,12 @@ struct ClipboardCardView: View {
                 renameTitle = record.displayTitle
                 renamePresented = true
             }
-            Menu("Pin") {
+            Menu("Tag") {
                 if record.categoryID != nil {
                     Button {
                         model.assign(record, to: nil)
                     } label: {
-                        Label("Unpin", systemImage: "pin.slash")
+                        Label("Remove Tag", systemImage: "tag.slash")
                     }
                     Divider()
                 }
@@ -153,14 +155,14 @@ struct ClipboardCardView: View {
                                 category.name,
                                 systemImage: record.categoryID == category.id
                                     ? "checkmark.circle.fill"
-                                    : "pin.fill"
+                                    : "tag.fill"
                             )
                         }
                     }
                     Divider()
                 }
 
-                Button("New Pinboard…") {
+                Button("New Tag…") {
                     categoryName = ""
                     categoryCreatorPresented = true
                 }
@@ -187,7 +189,7 @@ struct ClipboardCardView: View {
         } message: {
             Text("This changes only the title in Passst, not the original file.")
         }
-        .alert("New Pinboard", isPresented: $categoryCreatorPresented) {
+        .alert("New Tag", isPresented: $categoryCreatorPresented) {
             TextField("Name", text: $categoryName)
             Button("Cancel", role: .cancel) {}
             Button("Create") {
@@ -207,42 +209,47 @@ struct ClipboardCardView: View {
                     .isEmpty
             )
         } message: {
-            Text("The new pinboard will be assigned to this item.")
+            Text("The new tag will be assigned to this item.")
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(record.kind.title), \(record.displayTitle)")
         .accessibilityHint(
             record.kind == .link
                 ? "Drag, copy, or paste the web address, not its thumbnail"
-                : "Drag to another app or onto a pinboard"
+                : "Drag to another app or onto a tag"
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(record.displayTitle)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(headerTextColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .help(record.displayTitle)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.displayTitle)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.98))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                    .help(record.displayTitle)
 
-            HStack(alignment: .center, spacing: 5) {
-                Text(record.kind.title)
-                    .font(.system(size: 12, weight: .regular))
-
-                Text("·")
-
-                Text(compactAge(at: .now))
-                    .font(.system(size: 12, weight: .regular))
+                HStack(alignment: .center, spacing: 5) {
+                    Image(systemName: record.kind.symbolName)
+                        .font(.system(size: 10.5, weight: .semibold))
+                    Text(record.kind.title)
+                    Text("·")
+                    Text(compactAge(at: .now))
+                        .monospacedDigit()
+                }
+                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.76))
             }
-            .foregroundStyle(headerTextColor.opacity(0.84))
+
+            Spacer(minLength: 4)
+
+            applicationIconTile
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 16)
-        .padding(.trailing, 48)
-        .frame(maxHeight: .infinity, alignment: .leading)
+        .padding(.trailing, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func compactAge(at now: Date) -> String {
@@ -289,25 +296,53 @@ struct ClipboardCardView: View {
         }
     }
 
-    private var cardBackground: some View {
-        colorScheme == .dark
-            ? Color(red: 0.135, green: 0.14, blue: 0.155)
-            : Color.white.opacity(0.97)
+    private var headerBackground: some View {
+        ZStack(alignment: .trailing) {
+            accent
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.16),
+                    Color.clear,
+                    Color.black.opacity(0.13)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            HStack(spacing: -14) {
+                ForEach(0..<3, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.08 + Double(index) * 0.035), lineWidth: 1)
+                        .frame(width: 48, height: 38)
+                }
+            }
+            .rotationEffect(.degrees(-6))
+            .offset(x: 18)
+        }
     }
 
-    private var applicationIconNotch: some View {
+    private var cardBackground: some View {
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [
+                    Color(red: 0.145, green: 0.15, blue: 0.17),
+                    Color(red: 0.115, green: 0.12, blue: 0.14)
+                ]
+                : [
+                    Color.white.opacity(0.98),
+                    Color(red: 0.965, green: 0.97, blue: 0.985)
+                ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var applicationIconTile: some View {
         ZStack {
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 16,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: PassstStyle.cardCornerRadius
-            )
-            .fill(
-                colorScheme == .dark
-                    ? Color(red: 0.135, green: 0.14, blue: 0.155)
-                    : Color.white.opacity(0.96)
-            )
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.white.opacity(0.18))
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .stroke(Color.white.opacity(0.28), lineWidth: 1)
 
             if let icon = AppIconProvider.shared.icon(
                 bundleIdentifier: record.sourceBundleIdentifier
@@ -319,10 +354,11 @@ struct ClipboardCardView: View {
             } else {
                 Image(systemName: "app.fill")
                     .font(.system(size: 20))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.84))
             }
         }
-        .frame(width: 44, height: PassstStyle.cardHeaderHeight)
+        .frame(width: 42, height: 42)
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
         .help(record.sourceApplicationName ?? "Unknown application")
     }
 
@@ -331,7 +367,7 @@ struct ClipboardCardView: View {
             .font(.system(size: 10.5, weight: .bold, design: .rounded))
             .foregroundStyle(.white)
             .frame(minWidth: 20, minHeight: 20)
-            .background(Color.accentColor, in: Circle())
+            .background(PassstStyle.brandGradient, in: Circle())
             .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
             .animation(
                 model.reduceMotion

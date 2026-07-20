@@ -7,6 +7,7 @@ struct PanelToolbar: View {
     @FocusState private var searchFocused: Bool
     @State private var hoveredSuggestionID: String?
     @State private var toolbarMenuHovered = false
+    @State private var searchHovered = false
 
     private enum FilterSuggestion: Identifiable {
         case kind(ClipboardContentKind)
@@ -56,10 +57,29 @@ struct PanelToolbar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                HStack(spacing: 12) {
-                    searchCapsule(availableWidth: geometry.size.width)
-                        .overlay(alignment: .topLeading) {
+            let horizontalInset: CGFloat = 24
+            let islandSpacing: CGFloat = 14
+            let actionSpacing: CGFloat = 8
+            let searchWidth = searchCapsuleWidth(
+                availableWidth: geometry.size.width
+            )
+            let tagRailWidth = max(
+                210,
+                min(
+                    searchExpanded ? 420 : 700,
+                    geometry.size.width
+                        - (horizontalInset * 2)
+                        - searchWidth
+                        - 68
+                        - 74
+                        - actionSpacing
+                        - (islandSpacing * 2)
+                )
+            )
+
+            HStack(spacing: islandSpacing) {
+                searchCapsule(width: searchWidth)
+                    .overlay(alignment: .topLeading) {
                         if !filterSuggestions.isEmpty {
                             suggestionsPanel
                                 .offset(y: 46)
@@ -72,19 +92,18 @@ struct PanelToolbar: View {
                     }
                     .zIndex(40)
 
-                    CategoryBar(model: model, compact: searchExpanded)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .frame(maxHeight: 40)
-                }
-                .frame(maxWidth: geometry.size.width - 96, alignment: .center)
-                .zIndex(20)
+                CategoryBar(
+                    model: model,
+                    maximumWidth: tagRailWidth
+                )
 
-                HStack {
-                    Spacer()
+                HStack(spacing: actionSpacing) {
+                    createTagButton
                     toolbarMenu
                 }
-                .padding(.horizontal, 16)
             }
+            .frame(maxWidth: geometry.size.width - (horizontalInset * 2))
+            .zIndex(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onChange(of: model.isSearchFocused) { _, focused in
@@ -101,19 +120,54 @@ struct PanelToolbar: View {
         .animation(.easeOut(duration: 0.13), value: filterSuggestions.map(\.id))
     }
 
-    private func searchCapsule(availableWidth: CGFloat) -> some View {
-        let width = searchExpanded
-            ? min(520, max(400, availableWidth * 0.34))
-            : 32
+    private func searchCapsuleWidth(availableWidth: CGFloat) -> CGFloat {
+        searchExpanded
+            ? min(520, max(360, availableWidth * 0.34))
+            : 104
+    }
 
-        return HStack(spacing: 9) {
+    @ViewBuilder
+    private var glassCapsuleBackground: some View {
+        ZStack {
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: .capsule)
+            } else {
+                Capsule()
+                    .fill(.regularMaterial)
+            }
+
+            Capsule()
+                .fill(
+                    Color.primary.opacity(colorScheme == .dark ? 0.075 : 0.06)
+                )
+
+            Capsule()
+                .strokeBorder(
+                    Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.135),
+                    lineWidth: 1
+                )
+        }
+    }
+
+    private func searchCapsule(width: CGFloat) -> some View {
+        HStack(spacing: 9) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(
                     searchActive
                         ? Color.accentColor
-                        : Color.primary.opacity(0.64)
+                        : searchExpanded
+                            ? Color.primary.opacity(0.72)
+                            : Color.primary.opacity(0.78)
                 )
+
+            if !searchExpanded {
+                Text("Search")
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(Color.primary.opacity(0.78))
+                    .transition(.opacity.combined(with: .offset(x: -4)))
+            }
 
             if searchExpanded {
                 activeFilterChips
@@ -148,14 +202,20 @@ struct PanelToolbar: View {
                 filterMenu
             }
         }
-        .padding(.horizontal, searchExpanded ? 12 : 0)
-        .frame(width: width, height: searchExpanded ? 40 : 32)
+        .padding(.horizontal, searchExpanded ? 12 : 10)
+        .frame(width: width, height: 36)
+        .background(
+            glassCapsuleBackground
+        )
         .background {
-            if searchExpanded {
-                Capsule().fill(
-                    Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07)
+            Capsule()
+                .fill(
+                    Color.primary.opacity(
+                        searchExpanded
+                            ? colorScheme == .dark ? 0.06 : 0.025
+                            : searchHovered ? 0.055 : 0
+                    )
                 )
-            }
         }
         .overlay {
             if searchExpanded && model.isSearchFocused {
@@ -173,10 +233,16 @@ struct PanelToolbar: View {
             guard !searchExpanded else { return }
             activateSearch()
         }
+        .onHover { searchHovered = $0 }
         .accessibilityLabel(searchExpanded ? "Search history" : "Search")
         .help(searchExpanded ? "Search history" : "Search")
         .animation(searchAnimation, value: searchExpanded)
         .animation(.easeOut(duration: 0.12), value: searchActive)
+        .animation(.easeOut(duration: 0.12), value: searchHovered)
+    }
+
+    private var createTagButton: some View {
+        CategoryCreatorButton(model: model)
     }
 
     @ViewBuilder
@@ -446,23 +512,162 @@ struct PanelToolbar: View {
                 Label("Settings…", systemImage: "gearshape")
             }
         } label: {
-            Image(systemName: model.monitorPaused ? "play.fill" : "ellipsis")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(
-                    model.monitorPaused
-                        ? Color.orange
-                        : Color.primary.opacity(0.66)
-                )
-                .frame(width: 32, height: 32)
-                .background(
-                    Color.primary.opacity(toolbarMenuHovered ? 0.075 : 0),
-                    in: Circle()
-                )
+            HStack(spacing: 6) {
+                Image(systemName: model.monitorPaused ? "play.fill" : "ellipsis")
+                    .font(.system(size: 13.5, weight: .semibold))
+                Text("More")
+                    .font(.system(size: 13.5, weight: .medium))
+
+                if model.monitorPaused {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .foregroundStyle(Color.primary.opacity(0.78))
+            .frame(width: 74, height: 36)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .tint(Color.primary)
         .fixedSize()
+        .frame(width: 74, height: 36)
+        .background(glassCapsuleBackground)
+        .background {
+            Capsule()
+                .fill(Color.primary.opacity(toolbarMenuHovered ? 0.06 : 0))
+        }
+        .clipShape(Capsule())
+        .contentShape(Capsule())
         .onHover { toolbarMenuHovered = $0 }
-        .help(model.monitorPaused ? "History paused" : "Passst menu")
+        .help(model.monitorPaused ? "History paused — open menu" : "More")
+        .accessibilityLabel(model.monitorPaused ? "History paused, more" : "More")
+    }
+}
+
+private struct CategoryCreatorButton: View {
+    @Bindable var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isPresented = false
+    @State private var isHovered = false
+    @State private var name = ""
+    @State private var color = ClipboardCategory.palette[4]
+    @FocusState private var nameFocused: Bool
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13.5, weight: .semibold))
+                Text("Tag")
+                    .font(.system(size: 13.5, weight: .medium))
+            }
+            .foregroundStyle(Color.primary.opacity(0.78))
+            .frame(width: 68, height: 36)
+            .background {
+                ZStack {
+                    if #available(macOS 26.0, *) {
+                        Color.clear
+                            .glassEffect(.regular, in: .capsule)
+                    } else {
+                        Capsule()
+                            .fill(.regularMaterial)
+                    }
+
+                    Capsule()
+                        .fill(
+                            Color.primary.opacity(colorScheme == .dark ? 0.075 : 0.06)
+                        )
+
+                    Capsule()
+                        .strokeBorder(
+                            Color.primary.opacity(
+                                colorScheme == .dark ? 0.14 : 0.135
+                            ),
+                            lineWidth: 1
+                        )
+                }
+            }
+            .background {
+                Capsule()
+                    .fill(Color.primary.opacity(isHovered ? 0.06 : 0))
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help("Create tag")
+        .accessibilityLabel("Create tag")
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            creator
+        }
+    }
+
+    private var creator: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New Tag")
+                .font(.headline)
+
+            TextField("Name", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($nameFocused)
+                .onSubmit(create)
+
+            HStack(spacing: 9) {
+                ForEach(ClipboardCategory.palette, id: \.self) { colorHex in
+                    Button {
+                        color = colorHex
+                    } label: {
+                        Circle()
+                            .fill(Color(categoryHex: colorHex))
+                            .frame(width: 20, height: 20)
+                            .overlay {
+                                if color == colorHex {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    isPresented = false
+                    reset()
+                }
+                Button("Create", action: create)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(
+                        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    )
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+        .onAppear {
+            Task { @MainActor in
+                await Task.yield()
+                nameFocused = true
+            }
+        }
+    }
+
+    private func create() {
+        guard model.addCategory(name: name, colorHex: color) != nil else {
+            return
+        }
+        isPresented = false
+        reset()
+    }
+
+    private func reset() {
+        name = ""
+        color = ClipboardCategory.palette[4]
     }
 }

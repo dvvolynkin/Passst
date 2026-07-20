@@ -132,9 +132,9 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Section("Pinboards") {
+            Section("Tags") {
                 if model.categories.isEmpty {
-                    Text("Create pinboards from the + button in the Passst panel.")
+                    Text("Create tags from the + button in the Passst panel.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(model.categories) { category in
@@ -163,7 +163,7 @@ struct SettingsView: View {
                             .frame(width: 24)
 
                             TextField(
-                                "Pinboard name",
+                                "Tag name",
                                 text: Binding(
                                     get: { category.name },
                                     set: { name in
@@ -183,19 +183,19 @@ struct SettingsView: View {
                                 Image(systemName: "trash")
                             }
                             .buttonStyle(.borderless)
-                            .help("Delete pinboard")
+                            .help("Delete tag")
                         }
                     }
                 }
 
-                Button("Add Pinboard") {
+                Button("Add Tag") {
                     let color = ClipboardCategory.palette[
                         model.categories.count % ClipboardCategory.palette.count
                     ]
-                    _ = model.addCategory(name: "New Pinboard", colorHex: color)
+                    _ = model.addCategory(name: "New Tag", colorHex: color)
                 }
 
-                Text("Deleting a pinboard does not delete clipboard items.")
+                Text("Deleting a tag does not delete clipboard items.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

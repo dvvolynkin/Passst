@@ -6,11 +6,11 @@
 
 <p align="center">
   A fast, visual, local-first clipboard history for Mac.<br>
-  Search everything you copied, organize it with Pinboards, preview it, and paste without breaking your flow.
+  Search everything you copied, organize it with Tags, preview it, and paste without breaking your flow.
 </p>
 
 <p align="center">
-  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.2-macos-universal.dmg"><strong>Download for macOS</strong></a>
+  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.3-macos-universal.dmg"><strong>Download for macOS</strong></a>
   ·
   <a href="#quick-start">Quick start</a>
   ·
@@ -32,7 +32,7 @@ display, with the latest clipboard item already selected and ready to copy or pa
 
 ## Quick start
 
-1. Download **Passst 0.2.2** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
+1. Download **Passst 0.2.3** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
 2. Open the DMG and drag Passst to **Applications**.
 3. Passst is ad-hoc signed but not notarized. Control-click Passst and choose
    **Open**. If macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
@@ -46,8 +46,8 @@ Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 - **Search immediately.** Start typing or press `Command+F`; results update as you type.
 - **Filter precisely.** Narrow results by content type, source app, or date with removable
   filters and type-ahead suggestions.
-- **Organize with Pinboards.** Create color-coded collections, then pin an item from its menu
-  or drag it directly onto a pinboard.
+- **Organize with Tags.** Create color-coded tags, then assign one from an item's menu
+  or drag the item directly onto a tag.
 - **Preview before pasting.** Press `Space` for a large text, image, link, or file preview.
 - **Select in order.** Use `Command`-click for individual items or `Shift` to extend a range.
 - **Paste where you were.** `Enter` returns to the previous app and sends `Command+V`.
@@ -65,18 +65,20 @@ Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 
 ### Search
 
-![Passst instant search with content, app, date, and Pinboard filters](docs/assets/search-feature.jpg)
+![Passst instant search with content, app, date, and tag filters](docs/assets/search-feature.jpg)
 
 Click the search icon, start typing, or use `Command+F`. Suggestions can turn a phrase such
 as `link` or `last week` into an active filter. The filter menu exposes content type, source
 app, and date; each active chip can be removed without clearing the text query. The first
 `Escape` clears search and filters; the next closes Passst.
 
-### Pinboards and drag-and-drop
+### Tags and drag-and-drop
 
-Pinboards share the compact top bar with search. Use `+` to create one, choose its color,
-and pin an item from the card menu—or drag the card onto the pinboard. An item belongs to
-one pinboard at a time. Deleting a pinboard keeps its clipboard items in the main history.
+Tags live in a bounded, horizontally scrollable rail beside Search. Clipboard stays pinned,
+`All Tags` keeps long collections manageable, and `+ Tag` remains visible even when the rail
+contains dozens of tags. Create a tag, choose its color, and assign it from the card menu—or
+drag the card onto the tag. An item has one tag at a time. Deleting a tag keeps its clipboard
+items in the main history.
 
 Cards can also be dragged out of Passst. Files preserve the original file URL, images use
 their full-resolution PNG representation, links remain URLs, and text stays text.
@@ -127,7 +129,7 @@ Every card records the source application name and icon when macOS makes that in
 available. Copying the same payload again moves its existing record to the front.
 
 Right-click a card to paste it, paste it as plain text, copy it, rename its Passst title,
-pin or unpin it, or delete it. Renaming does not rename the original file.
+assign or remove its tag, or delete it. Renaming does not rename the original file.
 
 ## Accessibility
 
@@ -199,7 +201,7 @@ swift test
 To create the Universal 2 application, DMG, ZIP, and checksums:
 
 ```sh
-scripts/package-app.sh release 0.2.2 8
+scripts/package-app.sh release 0.2.3 9
 ```
 
 The repository contains both `Package.swift` and `project.yml`. GRDB provides SQLite and
@@ -207,7 +209,7 @@ full-text search; KeyboardShortcuts manages the configurable global shortcut.
 
 ## Scope
 
-Passst is intentionally local-first. Clipboard history, filtered search, Pinboards,
+Passst is intentionally local-first. Clipboard history, filtered search, Tags,
 drag-and-drop, previews, selection, copy, and paste are included. Cloud sync, OCR, and a
 cross-device history are not.
 
@@ -215,10 +217,10 @@ cross-device history are not.
 <summary><strong>Comparing clipboard managers?</strong></summary>
 
 If you are looking for a free, open-source alternative to Paste, Passst focuses on the
-visual clipboard workflow on a single Mac: horizontal cards, instant search, Pinboards,
+visual clipboard workflow on a single Mac: horizontal cards, instant search, Tags,
 previews, ordered multi-selection, plain-text paste, and drag-and-drop. It does not aim for
 feature parity with cross-device products and currently has no iPhone or iPad app, cloud
-sync, OCR, shared Pinboards, or automatic updates.
+sync, OCR, shared Tags, or automatic updates.
 
 Passst is an independent project and is not affiliated with Paste or its developers.
 </details>

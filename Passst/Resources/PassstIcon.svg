@@ -10,13 +10,21 @@
       <stop offset="0.55" stop-color="#835AF6" stop-opacity="0.08"/>
       <stop offset="1" stop-color="#835AF6" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="ribbon" x1="244" y1="292" x2="780" y2="676" gradientUnits="userSpaceOnUse">
+    <linearGradient id="topTrail" x1="210" y1="398" x2="430" y2="398" gradientUnits="userSpaceOnUse">
       <stop stop-color="#39D5E8"/>
-      <stop offset="0.48" stop-color="#3D6BFA"/>
+      <stop offset="1" stop-color="#3D6BFA"/>
+    </linearGradient>
+    <linearGradient id="bottomTrail" x1="278" y1="528" x2="430" y2="528" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#477DF5"/>
+      <stop offset="1" stop-color="#675EF6"/>
+    </linearGradient>
+    <linearGradient id="activeCard" x1="450" y1="284" x2="810" y2="724" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5AD8E8"/>
+      <stop offset="0.46" stop-color="#477DF5"/>
       <stop offset="1" stop-color="#835AF6"/>
     </linearGradient>
-    <filter id="ribbonShadow" x="-30%" y="-30%" width="170%" height="180%">
-      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#050713" flood-opacity="0.38"/>
+    <filter id="cardShadow" x="-35%" y="-25%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#050713" flood-opacity="0.42"/>
     </filter>
   </defs>
 
@@ -24,16 +32,9 @@
   <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#ambient)"/>
   <rect x="50" y="50" width="924" height="924" rx="206" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="4"/>
 
-  <g
-    fill="none"
-    stroke="url(#ribbon)"
-    stroke-width="96"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    filter="url(#ribbonShadow)"
-  >
-    <path d="M260 300H404C520 300 488 512 604 512"/>
-    <path d="M220 512H804"/>
-    <path d="M260 724H404C520 724 488 512 604 512"/>
+  <g filter="url(#cardShadow)">
+    <rect x="210" y="354" width="222" height="88" rx="44" fill="url(#topTrail)"/>
+    <rect x="278" y="484" width="154" height="88" rx="44" fill="url(#bottomTrail)"/>
+    <rect x="450" y="284" width="360" height="440" rx="84" fill="url(#activeCard)"/>
   </g>
 </svg>

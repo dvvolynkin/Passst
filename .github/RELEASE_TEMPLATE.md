@@ -1,15 +1,14 @@
-## Passst 0.2.3
+## Passst 0.2.4
 
-A visual and interaction refresh for Passst, the local-first clipboard history for macOS.
+A focused toolbar and icon polish for Passst, the local-first clipboard history for macOS.
 
 ### Highlights
 
-- A more spacious Liquid Glass panel with clearer, full-color card headers
-- Separate Search, scrollable Tags, `+ Tag`, and More controls
-- Reliable navigation for dozens of tags with a pinned Clipboard button and All Tags menu
-- A new minimal Passst app icon and monochrome menu-bar mark
-- Refreshed light, dark, search, and desktop screenshots
-- Drag-and-drop, previews, ordered selection, direct paste, and plain-text paste
+- A calmer three-zone toolbar with consistent spacing
+- Tag creation integrated into the tag rail instead of a separate control
+- Search keeps its familiar magnifying-glass cue while More stays in the far corner
+- A new passing-card app icon and matching monochrome menu-bar mark
+- Refreshed light, dark, and desktop screenshots
 
 ### Requirements
 

@@ -9,13 +9,18 @@ struct CategoryBar: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var targetedCategoryID: UUID?
     @State private var hoveredCategoryID: String?
+    @State private var creatingTag = false
+    @State private var addTagHovered = false
+    @State private var newTagName = ""
+    @State private var newTagColor = ClipboardCategory.palette[4]
+    @FocusState private var tagNameFocused: Bool
 
     var body: some View {
         HStack(spacing: 6) {
             categoryButton(
                 title: "Clipboard",
                 color: Color.primary.opacity(0.72),
-                systemImage: "clock.arrow.circlepath",
+                showsColorDot: false,
                 selected: model.selectedCategoryID == nil
             ) {
                 model.selectedCategoryID = nil
@@ -23,18 +28,22 @@ struct CategoryBar: View {
             .fixedSize()
 
             if !model.categories.isEmpty {
-                Divider()
-                    .frame(height: 18)
-                    .opacity(0.28)
-
                 tagScroller
 
                 if isOverflowing {
                     allTagsMenu
                 }
             }
+
+            Divider()
+                .frame(height: 18)
+                .opacity(0.2)
+                .padding(.horizontal, 6)
+
+            addTagButton
         }
-        .padding(.horizontal, 4)
+        .padding(.leading, 4)
+        .padding(.trailing, 6)
         .frame(width: railWidth, height: 36)
         .background {
             ZStack {
@@ -172,13 +181,15 @@ struct CategoryBar: View {
     }
 
     private var rawPreferredWidth: CGFloat {
-        let clipboardWidth = measuredButtonWidth("Clipboard", hasIcon: true)
+        let clipboardWidth = measuredButtonWidth("Clipboard", hasMarker: false)
         let tagWidths = model.categories.reduce(CGFloat.zero) { result, category in
-            result + measuredButtonWidth(category.name, hasIcon: false)
+            result + measuredButtonWidth(category.name, hasMarker: true)
         }
         let tagSpacing = CGFloat(max(0, model.categories.count - 1)) * 6
-        let dividerAndSpacing: CGFloat = model.categories.isEmpty ? 0 : 19
-        return 8 + clipboardWidth + dividerAndSpacing + tagWidths + tagSpacing
+        let tagSegment = model.categories.isEmpty
+            ? CGFloat.zero
+            : 6 + tagWidths + tagSpacing
+        return 10 + clipboardWidth + tagSegment + 13 + 1 + 12 + 28
     }
 
     private var isOverflowing: Bool {
@@ -189,22 +200,116 @@ struct CategoryBar: View {
         min(maximumWidth, rawPreferredWidth + (isOverflowing ? 70 : 0))
     }
 
-    private func measuredButtonWidth(_ title: String, hasIcon: Bool) -> CGFloat {
+    private func measuredButtonWidth(_ title: String, hasMarker: Bool) -> CGFloat {
         let font = NSFont.systemFont(
             ofSize: 14,
-            weight: hasIcon ? .semibold : .medium
+            weight: hasMarker ? .medium : .semibold
         )
         let textWidth = (title as NSString).size(
             withAttributes: [.font: font]
         ).width
-        let leadingMark: CGFloat = hasIcon ? 22 : 17
+        let leadingMark: CGFloat = hasMarker ? 17 : 0
         return ceil(textWidth) + leadingMark + 20
+    }
+
+    private var addTagButton: some View {
+        Button {
+            creatingTag = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(Color.primary.opacity(0.72))
+                .frame(width: 28, height: 28)
+                .background(
+                    Color.primary.opacity(addTagHovered ? 0.07 : 0),
+                    in: Circle()
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { addTagHovered = $0 }
+        .help("Create tag")
+        .accessibilityLabel("Create tag")
+        .popover(isPresented: $creatingTag, arrowEdge: .bottom) {
+            tagCreator
+        }
+    }
+
+    private var tagCreator: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New Tag")
+                .font(.headline)
+
+            TextField("Name", text: $newTagName)
+                .textFieldStyle(.roundedBorder)
+                .focused($tagNameFocused)
+                .onSubmit(createTag)
+
+            HStack(spacing: 9) {
+                ForEach(ClipboardCategory.palette, id: \.self) { colorHex in
+                    Button {
+                        newTagColor = colorHex
+                    } label: {
+                        Circle()
+                            .fill(Color(categoryHex: colorHex))
+                            .frame(width: 20, height: 20)
+                            .overlay {
+                                if newTagColor == colorHex {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    creatingTag = false
+                    resetTagCreator()
+                }
+                Button("Create", action: createTag)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(
+                        newTagName
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .isEmpty
+                    )
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+        .onAppear {
+            Task { @MainActor in
+                await Task.yield()
+                tagNameFocused = true
+            }
+        }
+    }
+
+    private func createTag() {
+        guard model.addCategory(
+            name: newTagName,
+            colorHex: newTagColor
+        ) != nil else {
+            return
+        }
+        creatingTag = false
+        resetTagCreator()
+    }
+
+    private func resetTagCreator() {
+        newTagName = ""
+        newTagColor = ClipboardCategory.palette[4]
     }
 
     private func categoryButton(
         title: String,
         color: Color,
         systemImage: String? = nil,
+        showsColorDot: Bool = true,
         selected: Bool,
         dropTargeted: Bool = false,
         action: @escaping () -> Void
@@ -218,7 +323,7 @@ struct CategoryBar: View {
                     Image(systemName: systemImage)
                         .font(.system(size: 13, weight: .medium))
                         .frame(width: 14)
-                } else {
+                } else if showsColorDot {
                     Circle()
                         .fill(color)
                         .frame(width: 9, height: 9)
@@ -290,5 +395,4 @@ struct CategoryBar: View {
         }
         return true
     }
-
 }

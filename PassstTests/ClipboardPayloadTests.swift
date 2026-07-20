@@ -7,15 +7,15 @@ final class ClipboardPayloadTests: XCTestCase {
     func testTextRoundTripThroughPasteboard() throws {
         let pasteboard = NSPasteboard(name: .init("app.passst.tests.\(UUID().uuidString)"))
         let codec = PasteboardCodec()
-        let original = ClipboardPayload.text("Привет, clipboard")
+        let original = ClipboardPayload.text("Café, clipboard")
 
         _ = try codec.write(original, to: pasteboard)
         let captured = try codec.capture(from: pasteboard)
 
-        XCTAssertEqual(captured.plainText, "Привет, clipboard")
+        XCTAssertEqual(captured.plainText, "Café, clipboard")
         XCTAssertEqual(
             captured.items.first?.representation(for: .string)?.data,
-            Data("Привет, clipboard".utf8)
+            Data("Café, clipboard".utf8)
         )
     }
 
@@ -97,7 +97,7 @@ final class ClipboardPayloadTests: XCTestCase {
         )
         XCTAssertEqual(
             ClipboardPayloadClassifier.kind(
-                for: .text("Обычный текст с несколькими словами")
+                for: .text("Ordinary text with several words")
             ),
             .text
         )

@@ -2,15 +2,15 @@
   <img src="Passst/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" width="112" alt="Passst app icon">
 </p>
 
-<h1 align="center">Passst</h1>
+<h1 align="center">Passst — free, open-source clipboard manager for macOS</h1>
 
 <p align="center">
-  A fast, local-first clipboard history for macOS.<br>
-  Find anything you copied, preview it, select several items, and paste without breaking your flow.
+  A fast, visual, local-first clipboard history for Mac.<br>
+  Search everything you copied, organize it with Pinboards, preview it, and paste without breaking your flow.
 </p>
 
 <p align="center">
-  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.1-macos-universal.dmg"><strong>Download for macOS</strong></a>
+  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.2-macos-universal.dmg"><strong>Download for macOS</strong></a>
   ·
   <a href="#quick-start">Quick start</a>
   ·
@@ -24,24 +24,24 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square"></a>
 </p>
 
-![Passst clipboard history panel](docs/assets/panel-dark.jpg)
+![Passst visual clipboard manager at the bottom of a macOS desktop](docs/assets/hero-desktop.jpg)
 
-Passst stays out of the way until you press `Shift+Command+V`. It opens as a full-width
-glass panel at the bottom of the current display, with the latest clipboard item already
-selected and ready to copy or paste.
+Passst is a native macOS clipboard manager that stays out of the way until you press
+`Shift+Command+V`. It opens as a full-width glass panel at the bottom of the current
+display, with the latest clipboard item already selected and ready to copy or paste.
 
 ## Quick start
 
-1. Download **Passst 0.2.1** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
+1. Download **Passst 0.2.2** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
 2. Open the DMG and drag Passst to **Applications**.
-3. This first release is ad-hoc signed but not notarized. Control-click Passst and choose
+3. Passst is ad-hoc signed but not notarized. Control-click Passst and choose
    **Open**. If macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
 4. Press `Shift+Command+V`.
 5. Grant Accessibility only if you want `Enter` to paste directly into the app you were using.
 
 Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 
-## The clipboard, without the clutter
+## A visual clipboard manager without the clutter
 
 - **Search immediately.** Start typing or press `Command+F`; results update as you type.
 - **Filter precisely.** Narrow results by content type, source app, or date with removable
@@ -183,17 +183,6 @@ Passst fetches metadata for visible link cards through macOS Link Presentation. 
 upload the rest of your clipboard history.
 </details>
 
-## Русский quick start
-
-1. Скачайте DMG из [последнего релиза](https://github.com/dvvolynkin/Passst/releases/latest).
-2. Перетащите Passst в **Applications**.
-3. Первый релиз не notarized: нажмите по приложению с `Control` и выберите **Open**.
-   Если macOS продолжает блокировать запуск, откройте
-   **System Settings → Privacy & Security → Open Anyway**.
-4. Нажмите `Shift+Command+V`.
-5. Accessibility нужен только для вставки по `Enter`; история, поиск, preview и
-   `Command+C` работают без него.
-
 ## Build from source
 
 Requirements:
@@ -210,7 +199,7 @@ swift test
 To create the Universal 2 application, DMG, ZIP, and checksums:
 
 ```sh
-scripts/package-app.sh release 0.2.1 7
+scripts/package-app.sh release 0.2.2 8
 ```
 
 The repository contains both `Package.swift` and `project.yml`. GRDB provides SQLite and
@@ -220,7 +209,19 @@ full-text search; KeyboardShortcuts manages the configurable global shortcut.
 
 Passst is intentionally local-first. Clipboard history, filtered search, Pinboards,
 drag-and-drop, previews, selection, copy, and paste are included. Cloud sync, OCR, and a
-cross-device Paste Stack are not.
+cross-device history are not.
+
+<details>
+<summary><strong>Comparing clipboard managers?</strong></summary>
+
+If you are looking for a free, open-source alternative to Paste, Passst focuses on the
+visual clipboard workflow on a single Mac: horizontal cards, instant search, Pinboards,
+previews, ordered multi-selection, plain-text paste, and drag-and-drop. It does not aim for
+feature parity with cross-device products and currently has no iPhone or iPad app, cloud
+sync, OCR, shared Pinboards, or automatic updates.
+
+Passst is an independent project and is not affiliated with Paste or its developers.
+</details>
 
 ## License
 

@@ -49,7 +49,9 @@ struct PanelRootView: View {
     private var panelBackground: some View {
         ZStack {
             VisualEffectView(material: .underWindowBackground)
-            Color.black.opacity(colorScheme == .dark ? 0.14 : 0.015)
+                .opacity(colorScheme == .dark ? 0.82 : 0.76)
+            Color.black.opacity(colorScheme == .dark ? 0.08 : 0)
+            Color.white.opacity(colorScheme == .dark ? 0 : 0.045)
         }
     }
 

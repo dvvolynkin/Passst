@@ -961,7 +961,7 @@ final class AppModel {
                             """
                             Paste anything. Find it instantly.
 
-                            Русский поиск по истории тоже работает.
+                            Café search works across your clipboard history.
                             """
                         ),
                         "com.apple.TextEdit",

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.3-macos-universal.dmg"><strong>Download for macOS</strong></a>
+  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.4-macos-universal.dmg"><strong>Download for macOS</strong></a>
   ·
   <a href="#quick-start">Quick start</a>
   ·
@@ -32,7 +32,7 @@ display, with the latest clipboard item already selected and ready to copy or pa
 
 ## Quick start
 
-1. Download **Passst 0.2.3** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
+1. Download **Passst 0.2.4** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
 2. Open the DMG and drag Passst to **Applications**.
 3. Passst is ad-hoc signed but not notarized. Control-click Passst and choose
    **Open**. If macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
@@ -75,8 +75,8 @@ app, and date; each active chip can be removed without clearing the text query. 
 ### Tags and drag-and-drop
 
 Tags live in a bounded, horizontally scrollable rail beside Search. Clipboard stays pinned,
-`All Tags` keeps long collections manageable, and `+ Tag` remains visible even when the rail
-contains dozens of tags. Create a tag, choose its color, and assign it from the card menu—or
+`All Tags` keeps long collections manageable, and `+` remains fixed inside the rail even
+when it contains dozens of tags. Create a tag, choose its color, and assign it from the card menu—or
 drag the card onto the tag. An item has one tag at a time. Deleting a tag keeps its clipboard
 items in the main history.
 
@@ -201,7 +201,7 @@ swift test
 To create the Universal 2 application, DMG, ZIP, and checksums:
 
 ```sh
-scripts/package-app.sh release 0.2.3 9
+scripts/package-app.sh release 0.2.4 10
 ```
 
 The repository contains both `Package.swift` and `project.yml`. GRDB provides SQLite and

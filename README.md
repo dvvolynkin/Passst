@@ -65,7 +65,7 @@ Passst works on macOS 14 and newer, on both Apple Silicon and Intel Macs.
 
 ### Search
 
-![Searching clipboard history in Passst](docs/assets/search.jpg)
+![Passst instant search with content, app, date, and Pinboard filters](docs/assets/search-feature.jpg)
 
 Click the search icon, start typing, or use `Command+F`. Suggestions can turn a phrase such
 as `link` or `last week` into an active filter. The filter menu exposes content type, source

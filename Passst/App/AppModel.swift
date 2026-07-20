@@ -235,8 +235,8 @@ final class AppModel {
                     records[index].categoryID = category?.id
                 }
                 showNotice(
-                    category.map { "Pinned to \($0.name)" } ?? "Unpinned",
-                    symbol: category == nil ? "tray" : "pin.fill"
+                    category.map { "Tagged as \($0.name)" } ?? "Tag removed",
+                    symbol: category == nil ? "tag.slash" : "tag.fill"
                 )
             } catch {
                 show(error: error)
@@ -903,31 +903,64 @@ final class AppModel {
         Task {
             do {
                 try await repository.clear()
-                let usefulLinks = ClipboardCategory(
-                    name: "Useful Links",
-                    colorHex: ClipboardCategory.palette[3]
-                )
-                let important = ClipboardCategory(
-                    name: "Important",
+                let design = ClipboardCategory(
+                    name: "Design",
                     colorHex: ClipboardCategory.palette[0]
                 )
-                let code = ClipboardCategory(
-                    name: "Code",
+                let writing = ClipboardCategory(
+                    name: "Writing",
+                    colorHex: ClipboardCategory.palette[2]
+                )
+                let swift = ClipboardCategory(
+                    name: "Swift",
                     colorHex: ClipboardCategory.palette[5]
                 )
-                categories = [usefulLinks, important, code]
+                let fixtureCategories = [design, writing, swift]
+                if ProcessInfo.processInfo.arguments.contains("--many-tags") {
+                    let additionalNames = [
+                        "Launch",
+                        "Ideas",
+                        "Clients",
+                        "Personal",
+                        "References",
+                        "Snippets",
+                        "Travel",
+                        "Finance",
+                        "Reading",
+                        "Later",
+                        "Archive",
+                        "Brand",
+                        "Product",
+                        "Support",
+                        "Team",
+                        "Inspiration",
+                        "Drafts"
+                    ]
+                    categories = fixtureCategories + additionalNames.enumerated().map {
+                        index, name in
+                        ClipboardCategory(
+                            name: name,
+                            colorHex: ClipboardCategory.palette[
+                                (index + fixtureCategories.count)
+                                    % ClipboardCategory.palette.count
+                            ]
+                        )
+                    }
+                } else {
+                    categories = fixtureCategories
+                }
                 let fixtures = [
                     (
                         Self.uiTestFilePayload(),
                         "com.apple.finder",
                         "Finder",
-                        important.id
+                        design.id
                     ),
                     (
                         Self.uiTestImagePayload(),
                         "com.apple.Preview",
                         "Preview",
-                        important.id
+                        design.id
                     ),
                     (
                         ClipboardPayload.text("#3867F4"),
@@ -941,7 +974,7 @@ final class AppModel {
                         ),
                         "com.apple.Safari",
                         "Safari",
-                        usefulLinks.id
+                        swift.id
                     ),
                     (
                         ClipboardPayload.text(
@@ -954,7 +987,7 @@ final class AppModel {
                         ),
                         "com.apple.Terminal",
                         "Terminal",
-                        code.id
+                        swift.id
                     ),
                     (
                         ClipboardPayload.text(
@@ -966,7 +999,7 @@ final class AppModel {
                         ),
                         "com.apple.TextEdit",
                         "TextEdit",
-                        nil
+                        writing.id
                     )
                 ]
                 for (payload, bundleIdentifier, applicationName, categoryID) in fixtures {

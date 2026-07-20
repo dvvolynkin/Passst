@@ -4,80 +4,201 @@ import UniformTypeIdentifiers
 
 struct CategoryBar: View {
     @Bindable var model: AppModel
-    let compact: Bool
+    let maximumWidth: CGFloat
 
-    @State private var creatingCategory = false
-    @State private var newCategoryName = ""
-    @State private var newCategoryColor = ClipboardCategory.palette[4]
+    @Environment(\.colorScheme) private var colorScheme
     @State private var targetedCategoryID: UUID?
     @State private var hoveredCategoryID: String?
-    @State private var plusHovered = false
-    @FocusState private var nameFocused: Bool
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: compact ? 8 : 18) {
-                categoryButton(
-                    title: "Clipboard",
-                    color: Color.primary.opacity(0.72),
-                    systemImage: "clock.arrow.circlepath",
-                    selected: model.selectedCategoryID == nil
-                ) {
-                    model.selectedCategoryID = nil
+        HStack(spacing: 6) {
+            categoryButton(
+                title: "Clipboard",
+                color: Color.primary.opacity(0.72),
+                systemImage: "clock.arrow.circlepath",
+                selected: model.selectedCategoryID == nil
+            ) {
+                model.selectedCategoryID = nil
+            }
+            .fixedSize()
+
+            if !model.categories.isEmpty {
+                Divider()
+                    .frame(height: 18)
+                    .opacity(0.28)
+
+                tagScroller
+
+                if isOverflowing {
+                    allTagsMenu
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .frame(width: railWidth, height: 36)
+        .background {
+            ZStack {
+                if #available(macOS 26.0, *) {
+                    Color.clear
+                        .glassEffect(.regular, in: .capsule)
+                } else {
+                    Capsule()
+                        .fill(.regularMaterial)
                 }
 
-                ForEach(model.categories) { category in
-                    categoryButton(
-                        title: category.name,
-                        color: Color(categoryHex: category.colorHex),
-                        selected: model.selectedCategoryID == category.id,
-                        dropTargeted: targetedCategoryID == category.id
-                    ) {
-                        model.selectedCategoryID = category.id
-                    }
-                    .onDrop(
-                        of: [UTType.passstClipboardRecord.identifier],
-                        isTargeted: Binding(
-                            get: { targetedCategoryID == category.id },
-                            set: { isTargeted in
-                                targetedCategoryID = isTargeted ? category.id : nil
+                Capsule()
+                    .fill(
+                        Color.primary.opacity(colorScheme == .dark ? 0.075 : 0.06)
+                    )
+
+                Capsule()
+                    .strokeBorder(
+                        Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.135),
+                        lineWidth: 1
+                    )
+            }
+        }
+        .animation(.easeOut(duration: 0.16), value: railWidth)
+    }
+
+    private var tagScroller: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 6) {
+                    ForEach(model.categories) { category in
+                        categoryButton(
+                            title: category.name,
+                            color: Color(categoryHex: category.colorHex),
+                            selected: model.selectedCategoryID == category.id,
+                            dropTargeted: targetedCategoryID == category.id
+                        ) {
+                            model.selectedCategoryID = category.id
+                        }
+                        .id(category.id)
+                        .onDrop(
+                            of: [UTType.passstClipboardRecord.identifier],
+                            isTargeted: Binding(
+                                get: { targetedCategoryID == category.id },
+                                set: { isTargeted in
+                                    targetedCategoryID = isTargeted ? category.id : nil
+                                }
+                            )
+                        ) { providers in
+                            assignDroppedRecord(from: providers, to: category)
+                        }
+                        .contextMenu {
+                            Button("Delete Tag", role: .destructive) {
+                                model.deleteCategory(category)
                             }
-                        )
-                    ) { providers in
-                        assignDroppedRecord(from: providers, to: category)
-                    }
-                    .contextMenu {
-                        Button("Delete Pinboard", role: .destructive) {
-                            model.deleteCategory(category)
                         }
                     }
                 }
-
-                if !compact {
-                    Button {
-                        creatingCategory = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .regular))
-                            .frame(width: 32, height: 32)
-                            .background(
-                                Color.primary.opacity(plusHovered ? 0.075 : 0),
-                                in: Circle()
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { plusHovered = $0 }
-                    .help("Create pinboard")
-                    .popover(isPresented: $creatingCategory, arrowEdge: .bottom) {
-                        categoryCreator
-                    }
+                .padding(.horizontal, isOverflowing ? 8 : 0)
+            }
+            .scrollIndicators(.hidden)
+            .mask {
+                if isOverflowing {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.035),
+                            .init(color: .black, location: 0.90),
+                            .init(color: .clear, location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                } else {
+                    Color.black
                 }
             }
-            .padding(.vertical, 4)
+            .onChange(of: model.selectedCategoryID) { _, selectedID in
+                guard let selectedID else { return }
+                withAnimation(.easeOut(duration: 0.18)) {
+                    proxy.scrollTo(selectedID, anchor: .center)
+                }
+            }
         }
-        .frame(height: 40)
-        .scrollIndicators(.hidden)
-        .animation(.easeOut(duration: 0.16), value: compact)
+    }
+
+    private var allTagsMenu: some View {
+        Menu {
+            Button {
+                model.selectedCategoryID = nil
+            } label: {
+                Label(
+                    "Clipboard",
+                    systemImage: model.selectedCategoryID == nil
+                        ? "checkmark"
+                        : "clock.arrow.circlepath"
+                )
+            }
+
+            Divider()
+
+            ForEach(model.categories) { category in
+                Button {
+                    model.selectedCategoryID = category.id
+                } label: {
+                    Label(
+                        category.name,
+                        systemImage: model.selectedCategoryID == category.id
+                            ? "checkmark"
+                            : "tag"
+                    )
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text("All \(model.categories.count)")
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8.5, weight: .bold))
+            }
+            .font(.system(size: 12.5, weight: .medium))
+            .foregroundStyle(Color.primary.opacity(0.72))
+            .padding(.horizontal, 8)
+            .frame(height: 28)
+            .background(
+                Color.primary.opacity(0.045),
+                in: Capsule()
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .tint(Color.primary)
+        .fixedSize()
+        .help("All tags")
+        .accessibilityLabel("All tags")
+    }
+
+    private var rawPreferredWidth: CGFloat {
+        let clipboardWidth = measuredButtonWidth("Clipboard", hasIcon: true)
+        let tagWidths = model.categories.reduce(CGFloat.zero) { result, category in
+            result + measuredButtonWidth(category.name, hasIcon: false)
+        }
+        let tagSpacing = CGFloat(max(0, model.categories.count - 1)) * 6
+        let dividerAndSpacing: CGFloat = model.categories.isEmpty ? 0 : 19
+        return 8 + clipboardWidth + dividerAndSpacing + tagWidths + tagSpacing
+    }
+
+    private var isOverflowing: Bool {
+        rawPreferredWidth > maximumWidth
+    }
+
+    private var railWidth: CGFloat {
+        min(maximumWidth, rawPreferredWidth + (isOverflowing ? 70 : 0))
+    }
+
+    private func measuredButtonWidth(_ title: String, hasIcon: Bool) -> CGFloat {
+        let font = NSFont.systemFont(
+            ofSize: 14,
+            weight: hasIcon ? .semibold : .medium
+        )
+        let textWidth = (title as NSString).size(
+            withAttributes: [.font: font]
+        ).width
+        let leadingMark: CGFloat = hasIcon ? 22 : 17
+        return ceil(textWidth) + leadingMark + 20
     }
 
     private func categoryButton(
@@ -95,18 +216,16 @@ struct CategoryBar: View {
             HStack(spacing: 8) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: compact ? 14 : 13, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                         .frame(width: 14)
                 } else {
                     Circle()
                         .fill(color)
-                        .frame(width: compact ? 10 : 9, height: compact ? 10 : 9)
+                        .frame(width: 9, height: 9)
                 }
 
-                if !compact {
-                    Text(title)
-                        .lineLimit(1)
-                }
+                Text(title)
+                    .lineLimit(1)
             }
             .font(.system(size: 14, weight: selected ? .semibold : .medium))
             .foregroundStyle(
@@ -114,13 +233,15 @@ struct CategoryBar: View {
                     ? Color.primary.opacity(0.92)
                     : Color.primary.opacity(0.68)
             )
-            .padding(.horizontal, compact ? 0 : 10)
-            .frame(width: compact ? 30 : nil, height: 32)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
             .background(
                 dropTargeted
                     ? color.opacity(0.22)
                     : selected
-                        ? Color.primary.opacity(0.105)
+                        ? PassstStyle.brandViolet.opacity(
+                            colorScheme == .dark ? 0.18 : 0.12
+                        )
                         : Color.primary.opacity(hovered ? 0.06 : 0),
                 in: Capsule()
             )
@@ -138,72 +259,6 @@ struct CategoryBar: View {
         .help(title)
         .animation(.easeOut(duration: 0.12), value: dropTargeted)
         .animation(.easeOut(duration: 0.12), value: hovered)
-    }
-
-    private var categoryCreator: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("New Pinboard")
-                .font(.headline)
-
-            TextField("Name", text: $newCategoryName)
-                .textFieldStyle(.roundedBorder)
-                .focused($nameFocused)
-                .onSubmit(createCategory)
-
-            HStack(spacing: 9) {
-                ForEach(ClipboardCategory.palette, id: \.self) { colorHex in
-                    Button {
-                        newCategoryColor = colorHex
-                    } label: {
-                        Circle()
-                            .fill(Color(categoryHex: colorHex))
-                            .frame(width: 20, height: 20)
-                            .overlay {
-                                if newCategoryColor == colorHex {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            HStack {
-                Spacer()
-                Button("Cancel") {
-                    creatingCategory = false
-                    resetCreator()
-                }
-                Button("Create", action: createCategory)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(
-                        newCategoryName
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                            .isEmpty
-                    )
-            }
-        }
-        .padding(16)
-        .frame(width: 280)
-        .onAppear {
-            Task { @MainActor in
-                await Task.yield()
-                nameFocused = true
-            }
-        }
-    }
-
-    private func createCategory() {
-        guard model.addCategory(
-            name: newCategoryName,
-            colorHex: newCategoryColor
-        ) != nil else {
-            return
-        }
-        creatingCategory = false
-        resetCreator()
     }
 
     private func assignDroppedRecord(
@@ -236,8 +291,4 @@ struct CategoryBar: View {
         return true
     }
 
-    private func resetCreator() {
-        newCategoryName = ""
-        newCategoryColor = ClipboardCategory.palette[4]
-    }
 }

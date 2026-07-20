@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="${0:A:h:h}"
 RESOURCES_DIR="$ROOT_DIR/Passst/Resources"
+APPICON_DIR="$RESOURCES_DIR/Assets.xcassets/AppIcon.appiconset"
 TEMP_DIR="$(mktemp -d)"
 ICONSET_DIR="$TEMP_DIR/Passst.iconset"
 COLOR_PNG="$TEMP_DIR/Passst-1024.png"
@@ -27,4 +28,9 @@ sips -z 512 512 "$COLOR_PNG" --out "$ICONSET_DIR/icon_512x512.png" >/dev/null
 cp "$COLOR_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
 
 iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/Passst.icns"
-sips -z 128 128 "$MONO_PNG" --out "$RESOURCES_DIR/PassstMenuBarTemplate.png" >/dev/null
+
+for icon_file in "$ICONSET_DIR"/*.png; do
+    cp "$icon_file" "$APPICON_DIR/${icon_file:t}"
+done
+
+sips -z 36 36 "$MONO_PNG" --out "$RESOURCES_DIR/PassstMenuBarTemplate.png" >/dev/null

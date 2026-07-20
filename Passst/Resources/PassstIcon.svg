@@ -1,45 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="background" x1="112" y1="88" x2="912" y2="944" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#171B35"/>
-      <stop offset="0.52" stop-color="#28245B"/>
-      <stop offset="1" stop-color="#111426"/>
+    <linearGradient id="background" x1="104" y1="76" x2="920" y2="948" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A2031"/>
+      <stop offset="0.55" stop-color="#111625"/>
+      <stop offset="1" stop-color="#090C13"/>
     </linearGradient>
-    <linearGradient id="backCard" x1="206" y1="324" x2="630" y2="812" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FF6BB7"/>
-      <stop offset="1" stop-color="#9457FF"/>
-    </linearGradient>
-    <linearGradient id="middleCard" x1="300" y1="246" x2="730" y2="746" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#55E6FF"/>
-      <stop offset="1" stop-color="#3A72FF"/>
-    </linearGradient>
-    <linearGradient id="frontCard" x1="408" y1="178" x2="808" y2="704" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#E9ECFF"/>
-    </linearGradient>
-    <linearGradient id="ink" x1="488" y1="354" x2="726" y2="524" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#755BFF"/>
-      <stop offset="1" stop-color="#356CFF"/>
-    </linearGradient>
-    <filter id="cardShadow" x="-30%" y="-30%" width="180%" height="190%">
-      <feDropShadow dx="0" dy="30" stdDeviation="30" flood-color="#050713" flood-opacity="0.38"/>
-    </filter>
-    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(730 250) rotate(132) scale(630)" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#765EFF" stop-opacity="0.38"/>
-      <stop offset="1" stop-color="#765EFF" stop-opacity="0"/>
+    <radialGradient id="ambient" cx="0" cy="0" r="1" gradientTransform="translate(676 310) rotate(132) scale(680)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3D6BFA" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#835AF6" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#835AF6" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="ribbon" x1="244" y1="292" x2="780" y2="676" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#39D5E8"/>
+      <stop offset="0.48" stop-color="#3D6BFA"/>
+      <stop offset="1" stop-color="#835AF6"/>
+    </linearGradient>
+    <filter id="ribbonShadow" x="-30%" y="-30%" width="170%" height="180%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#050713" flood-opacity="0.38"/>
+    </filter>
   </defs>
 
   <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#background)"/>
-  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#glow)"/>
-  <rect x="49" y="49" width="926" height="926" rx="207" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="4"/>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#ambient)"/>
+  <rect x="50" y="50" width="924" height="924" rx="206" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="4"/>
 
-  <g filter="url(#cardShadow)">
-    <rect x="178" y="332" width="440" height="476" rx="108" fill="url(#backCard)"/>
-    <rect x="286" y="252" width="440" height="476" rx="108" fill="url(#middleCard)"/>
-    <rect x="394" y="172" width="440" height="476" rx="108" fill="url(#frontCard)"/>
+  <g
+    fill="none"
+    stroke="url(#ribbon)"
+    stroke-width="96"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#ribbonShadow)"
+  >
+    <path d="M260 300H404C520 300 488 512 604 512"/>
+    <path d="M220 512H804"/>
+    <path d="M260 724H404C520 724 488 512 604 512"/>
   </g>
-
-  <rect x="486" y="342" width="256" height="48" rx="24" fill="url(#ink)"/>
-  <rect x="486" y="430" width="188" height="48" rx="24" fill="url(#ink)" opacity="0.72"/>
 </svg>

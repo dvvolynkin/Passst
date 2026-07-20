@@ -36,6 +36,23 @@ struct PanelRootView: View {
             }
         }
         .clipShape(panelShape)
+        .overlay {
+            panelShape
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.23 : 0.48),
+                            PassstStyle.brandBlue.opacity(0.16),
+                            Color.white.opacity(colorScheme == .dark ? 0.08 : 0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.9
+                )
+                .padding(0.5)
+        }
+        .tint(PassstStyle.brandBlue)
         .ignoresSafeArea()
     }
 
@@ -48,10 +65,37 @@ struct PanelRootView: View {
 
     private var panelBackground: some View {
         ZStack {
-            VisualEffectView(material: .underWindowBackground)
-                .opacity(colorScheme == .dark ? 0.82 : 0.76)
-            Color.black.opacity(colorScheme == .dark ? 0.08 : 0)
-            Color.white.opacity(colorScheme == .dark ? 0 : 0.045)
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .glassEffect(
+                        .regular.tint(PassstStyle.brandBlue.opacity(0.025)),
+                        in: .rect(cornerRadius: PassstStyle.panelCornerRadius)
+                    )
+            } else {
+                VisualEffectView(material: .underWindowBackground)
+                    .opacity(colorScheme == .dark ? 0.78 : 0.72)
+            }
+
+            Color.black.opacity(colorScheme == .dark ? 0.06 : 0)
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(colorScheme == .dark ? 0.035 : 0.10),
+                    Color.clear,
+                    PassstStyle.brandCyan.opacity(colorScheme == .dark ? 0.055 : 0.028)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            RadialGradient(
+                colors: [
+                    PassstStyle.brandViolet.opacity(colorScheme == .dark ? 0.10 : 0.055),
+                    Color.clear
+                ],
+                center: .bottomLeading,
+                startRadius: 0,
+                endRadius: 460
+            )
         }
     }
 
@@ -128,7 +172,7 @@ struct PanelRootView: View {
             return "No matches"
         }
         if model.selectedCategoryID != nil {
-            return "This pinboard is empty"
+            return "No items with this tag"
         }
         return "Copy something to begin"
     }
@@ -138,7 +182,7 @@ struct PanelRootView: View {
             return "Try another query or remove a filter."
         }
         if model.selectedCategoryID != nil {
-            return "Drag a card onto this pinboard, or assign it from the context menu."
+            return "Drag a card onto this tag, or assign it from the context menu."
         }
         return "Passst keeps the original clipboard formats."
     }

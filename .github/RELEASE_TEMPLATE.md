@@ -1,15 +1,15 @@
-## Passst 0.1.0
+## Passst 0.2.3
 
-The first public release of Passst: a fast, local-first clipboard history for macOS.
+A visual and interaction refresh for Passst, the local-first clipboard history for macOS.
 
 ### Highlights
 
-- Full-width clipboard history with horizontal navigation
-- Search across copied text, links, files, and source applications
-- Text, rich text, code, image, color, file, mixed-content, and link previews
-- Ordered multi-selection
-- Copy with `Command+C`, direct paste with `Enter`, and plain-text paste with `Shift+Enter`
-- Native menu bar app, configurable global shortcut, and local SQLite storage
+- A more spacious Liquid Glass panel with clearer, full-color card headers
+- Separate Search, scrollable Tags, `+ Tag`, and More controls
+- Reliable navigation for dozens of tags with a pinned Clipboard button and All Tags menu
+- A new minimal Passst app icon and monochrome menu-bar mark
+- Refreshed light, dark, search, and desktop screenshots
+- Drag-and-drop, previews, ordered selection, direct paste, and plain-text paste
 
 ### Requirements
 

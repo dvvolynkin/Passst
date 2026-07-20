@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passst marketing stage</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      background: #dce7ff;
+      color: #172033;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,255,255,.96), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(132,165,255,.78), transparent 28%),
+        radial-gradient(circle at 60% 88%, rgba(255,200,142,.78), transparent 35%),
+        linear-gradient(135deg, #edf4ff 0%, #cbd9ff 48%, #f3d5c2 100%);
+    }
+
+    .desktop {
+      min-height: 100vh;
+      padding: 58px 64px 380px;
+      position: relative;
+    }
+
+    .ambient {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0));
+    }
+
+    .workspace {
+      position: relative;
+      max-width: 1420px;
+      height: 620px;
+      margin: 0 auto;
+    }
+
+    .window {
+      position: absolute;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 22px;
+      overflow: hidden;
+      background: rgba(249,251,255,.76);
+      box-shadow:
+        0 34px 80px rgba(39,55,102,.22),
+        0 4px 18px rgba(39,55,102,.12);
+      backdrop-filter: blur(34px) saturate(130%);
+    }
+
+    .window.primary {
+      inset: 0 270px 40px 0;
+      transform: rotate(-1.1deg);
+    }
+
+    .window.secondary {
+      width: 470px;
+      height: 470px;
+      right: 0;
+      top: 96px;
+      transform: rotate(1.8deg);
+      background: rgba(245,247,255,.82);
+    }
+
+    .titlebar {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(35,47,77,.08);
+      background: rgba(255,255,255,.48);
+    }
+
+    .traffic { width: 12px; height: 12px; border-radius: 50%; }
+    .red { background: #ff605c; }
+    .yellow { background: #ffbd44; }
+    .green { background: #00ca4e; }
+
+    .title {
+      margin-left: 12px;
+      font-size: 14px;
+      font-weight: 650;
+      color: rgba(23,32,51,.72);
+    }
+
+    .document {
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      height: calc(100% - 52px);
+    }
+
+    .sidebar {
+      padding: 26px 18px;
+      border-right: 1px solid rgba(35,47,77,.08);
+      background: rgba(239,244,255,.56);
+    }
+
+    .side-label {
+      margin: 0 8px 12px;
+      color: rgba(23,32,51,.42);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      padding: 10px 12px;
+      border-radius: 11px;
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 560;
+      color: rgba(23,32,51,.62);
+    }
+
+    .nav.active {
+      color: #264ecf;
+      background: rgba(68,111,255,.13);
+    }
+
+    .page { padding: 54px 60px; }
+
+    .eyebrow {
+      margin-bottom: 12px;
+      color: #3765ef;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 700px;
+      margin: 0;
+      font-size: clamp(42px, 4vw, 72px);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+
+    .lead {
+      max-width: 620px;
+      margin: 24px 0 34px;
+      color: rgba(23,32,51,.58);
+      font-size: 18px;
+      line-height: 1.55;
+    }
+
+    .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 650;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.9);
+      box-shadow: 0 6px 18px rgba(37,58,114,.08);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 20px;
+    }
+
+    .tile {
+      min-height: 160px;
+      border-radius: 17px;
+      padding: 18px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.26);
+    }
+
+    .tile:nth-child(1) { background: linear-gradient(145deg, #ff6c55, #ffb04f); }
+    .tile:nth-child(2) { background: linear-gradient(145deg, #5076ff, #8d61ef); }
+    .tile:nth-child(3) { background: linear-gradient(145deg, #16a9a0, #5bd47e); }
+    .tile:nth-child(4) { background: linear-gradient(145deg, #27334f, #536487); }
+
+    .tile small { opacity: .7; font-weight: 650; }
+    .tile strong { font-size: 22px; letter-spacing: -.02em; }
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: 336px;
+      transform: translateX(-50%);
+      color: rgba(23,32,51,.42);
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+<body>
+  <main class="desktop">
+    <div class="ambient"></div>
+    <section class="workspace">
+      <article class="window primary">
+        <div class="titlebar">
+          <span class="traffic red"></span>
+          <span class="traffic yellow"></span>
+          <span class="traffic green"></span>
+          <span class="title">Product launch brief</span>
+        </div>
+        <div class="document">
+          <aside class="sidebar">
+            <p class="side-label">Workspace</p>
+            <div class="nav active">Launch brief</div>
+            <div class="nav">Research notes</div>
+            <div class="nav">Useful links</div>
+            <div class="nav">Release copy</div>
+          </aside>
+          <div class="page">
+            <div class="eyebrow">Ready for launch</div>
+            <h1>Everything you copied, one shortcut away.</h1>
+            <p class="lead">
+              Keep the text, links, images, and files you use while moving between
+              research, design, and writing.
+            </p>
+            <div class="chips">
+              <span class="chip">Search instantly</span>
+              <span class="chip">Preview anything</span>
+              <span class="chip">Drag and drop</span>
+            </div>
+          </div>
+        </div>
+      </article>
+      <aside class="window secondary">
+        <div class="titlebar">
+          <span class="traffic red"></span>
+          <span class="traffic yellow"></span>
+          <span class="traffic green"></span>
+          <span class="title">Launch assets</span>
+        </div>
+        <div class="gallery">
+          <div class="tile"><small>Image</small><strong>Campaign</strong></div>
+          <div class="tile"><small>Code</small><strong>Components</strong></div>
+          <div class="tile"><small>Link</small><strong>References</strong></div>
+          <div class="tile"><small>Files</small><strong>Exports</strong></div>
+        </div>
+      </aside>
+    </section>
+    <div class="hint">PRESS SHIFT–COMMAND–V FROM ANY APP</div>
+  </main>
+</body>
+</html>

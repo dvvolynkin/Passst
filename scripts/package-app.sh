@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR="${0:A:h:h}"
 CONFIGURATION="${1:-release}"
-VERSION="${2:-0.2.1}"
-BUILD_NUMBER="${3:-7}"
+VERSION="${2:-0.2.2}"
+BUILD_NUMBER="${3:-8}"
 ARM64_BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/$CONFIGURATION"
 X86_64_BUILD_DIR="$ROOT_DIR/.build/x86_64-apple-macosx/$CONFIGURATION"
 APP_DIR="$ROOT_DIR/dist/Passst.app"

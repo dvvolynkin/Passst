@@ -20,18 +20,18 @@ final class PassstUITests: XCTestCase {
         app = nil
     }
 
-    func testSearchAcceptsRussianText() {
+    func testSearchAcceptsAccentedText() {
         let search = app.textFields["Search history"]
-        search.typeText("русский")
+        search.typeText("café")
 
-        let russianResult = app.staticTexts.containing(
-            NSPredicate(format: "value CONTAINS[c] %@", "Русский поиск")
+        let accentedResult = app.staticTexts.containing(
+            NSPredicate(format: "value CONTAINS[c] %@", "Café search")
         ).firstMatch
-        XCTAssertTrue(russianResult.waitForExistence(timeout: 2))
+        XCTAssertTrue(accentedResult.waitForExistence(timeout: 2))
 
         search.typeKey(.escape, modifierFlags: [])
         XCTAssertFalse(
-            (search.value as? String ?? "").localizedCaseInsensitiveContains("русский")
+            (search.value as? String ?? "").localizedCaseInsensitiveContains("café")
         )
     }
 

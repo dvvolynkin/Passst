@@ -41,7 +41,7 @@ struct PassstApp: App {
                 Button("About Passst") {
                     let version = Bundle.main.object(
                         forInfoDictionaryKey: "CFBundleShortVersionString"
-                    ) as? String ?? "0.2.1"
+                    ) as? String ?? "0.2.2"
                     NSApp.orderFrontStandardAboutPanel(
                         options: [
                             .applicationName: "Passst",

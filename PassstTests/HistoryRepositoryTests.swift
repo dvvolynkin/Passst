@@ -36,7 +36,7 @@ final class HistoryRepositoryTests: XCTestCase {
         XCTAssertGreaterThan(second.updatedAt, first.updatedAt)
     }
 
-    func testSearchFindsRussianEnglishAndSourceApp() async throws {
+    func testSearchFindsAccentedEnglishAndSourceApp() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("PassstTests-\(UUID().uuidString)", isDirectory: true)
         defer {
@@ -49,7 +49,7 @@ final class HistoryRepositoryTests: XCTestCase {
         let repository = try HistoryRepository(rootURL: root)
 
         for (text, app) in [
-            ("Счёт для клиента", "Mail"),
+            ("Invoice for café client", "Mail"),
             ("Release checklist", "Notes")
         ] {
             let payload = ClipboardPayload.text(text)
@@ -59,19 +59,19 @@ final class HistoryRepositoryTests: XCTestCase {
             _ = try await repository.save(payload: payload, metadata: record)
         }
 
-        let russian = try await repository.page(query: "счёт", offset: 0)
+        let accented = try await repository.page(query: "café", offset: 0)
         let english = try await repository.page(query: "release", offset: 0)
         let application = try await repository.page(query: "Mail", offset: 0)
 
-        XCTAssertEqual(russian.records.map(\.displayTitle), ["Счёт для клиента"])
+        XCTAssertEqual(accented.records.map(\.displayTitle), ["Invoice for café client"])
         XCTAssertEqual(english.records.map(\.displayTitle), ["Release checklist"])
         XCTAssertEqual(application.records.map(\.sourceApplicationName), ["Mail"])
     }
 
     func testSearchExpressionCreatesSafePrefixTokens() {
         XCTAssertEqual(
-            HistoryRepository.searchExpression(#"  русский "two words"  "#),
-            #""русский"* AND """two"* AND "words"""*"#
+            HistoryRepository.searchExpression(#"  résumé "two words"  "#),
+            #""résumé"* AND """two"* AND "words"""*"#
         )
     }
 

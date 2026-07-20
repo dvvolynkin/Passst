@@ -35,6 +35,7 @@ struct ClipboardCardView: View {
         VStack(spacing: 0) {
             header
                 .frame(height: PassstStyle.cardHeaderHeight)
+                .background(accent)
             content
                 .frame(maxWidth: .infinity)
                 .frame(
@@ -241,7 +242,7 @@ struct ClipboardCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 16)
         .padding(.trailing, 48)
-        .background(accent)
+        .frame(maxHeight: .infinity, alignment: .leading)
     }
 
     private func compactAge(at now: Date) -> String {
@@ -251,18 +252,15 @@ struct ClipboardCardView: View {
         }
         let minutes = Int(interval / 60)
         if minutes < 60 {
-            return "\(minutes) min"
+            return "\(minutes)m"
         }
         let hours = Int(interval / 3_600)
         if hours < 24 {
-            return "\(hours) h"
-        }
-        if Calendar.autoupdatingCurrent.isDateInYesterday(record.updatedAt) {
-            return "Yesterday"
+            return "\(hours)h"
         }
         let days = Int(interval / 86_400)
         if days < 7 {
-            return "\(days) d"
+            return "\(days)d"
         }
         return record.updatedAt.formatted(
             .dateTime.month(.abbreviated).day()

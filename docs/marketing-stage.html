@@ -3,82 +3,149 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Passst marketing stage</title>
+  <title>Passst artwork source</title>
   <style>
     :root {
       color-scheme: light;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-      background: #dce7ff;
-      color: #172033;
+      color: #101116;
+      background: #fff;
     }
 
     * { box-sizing: border-box; }
 
+    html,
     body {
+      width: 100%;
+      min-height: 100%;
       margin: 0;
-      min-height: 100vh;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(255,255,255,.96), transparent 28%),
-        radial-gradient(circle at 82% 18%, rgba(132,165,255,.78), transparent 28%),
-        radial-gradient(circle at 60% 88%, rgba(255,200,142,.78), transparent 35%),
-        linear-gradient(135deg, #edf4ff 0%, #cbd9ff 48%, #f3d5c2 100%);
     }
 
-    .desktop {
-      min-height: 100vh;
-      padding: 58px 64px 380px;
+    body[data-shot="hero"] .search-artboard,
+    body[data-shot="search"] .hero-artboard {
+      display: none;
+    }
+
+    body[data-shot="hero"] {
+      width: 1280px;
+      height: 800px;
+    }
+
+    body[data-shot="search"] {
+      width: 1280px;
+      height: 720px;
+    }
+
+    body[data-shot="hero"] .hero-artboard,
+    body[data-shot="search"] .search-artboard {
+      transform: scale(.8);
+      transform-origin: left top;
+    }
+
+    .artboard {
       position: relative;
+      overflow: hidden;
+      background: #f7f7f9;
     }
 
-    .ambient {
+    .hero-artboard {
+      width: 1600px;
+      height: 1000px;
+      background:
+        radial-gradient(circle at 50% 86%, rgba(70, 76, 154, .14), transparent 27%),
+        linear-gradient(180deg, #fff 0%, #f7f7fa 78%, #eeeef4 100%);
+    }
+
+    .monitor {
+      position: absolute;
+      left: 80px;
+      top: 54px;
+      width: 1440px;
+      height: 820px;
+      padding: 18px;
+      border-radius: 56px;
+      background: linear-gradient(145deg, #262833 0%, #08090d 52%, #1b1d25 100%);
+      box-shadow:
+        0 48px 90px rgba(23, 25, 45, .22),
+        0 12px 30px rgba(23, 25, 45, .14),
+        inset 0 1px 0 rgba(255, 255, 255, .2);
+    }
+
+    .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 39px;
+      background:
+        radial-gradient(circle at 78% 22%, rgba(255, 134, 151, .9), transparent 28%),
+        radial-gradient(circle at 16% 18%, rgba(89, 229, 212, .72), transparent 25%),
+        radial-gradient(circle at 58% 80%, rgba(93, 71, 255, .95), transparent 35%),
+        linear-gradient(135deg, #142b66 0%, #3859d8 44%, #a955d6 100%);
+    }
+
+    .screen::before {
+      position: absolute;
+      inset: -20%;
+      content: "";
+      transform: rotate(-12deg);
+      background:
+        linear-gradient(110deg, transparent 28%, rgba(255,255,255,.14) 42%, transparent 55%),
+        linear-gradient(20deg, transparent 54%, rgba(25,18,78,.28) 55%, transparent 70%);
+      filter: blur(18px);
+    }
+
+    .screen::after {
       position: absolute;
       inset: 0;
+      content: "";
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0));
+      background: linear-gradient(180deg, rgba(255,255,255,.12), transparent 36%);
     }
 
-    .workspace {
-      position: relative;
-      max-width: 1420px;
-      height: 620px;
-      margin: 0 auto;
-    }
-
-    .window {
+    .menu-bar {
       position: absolute;
-      border: 1px solid rgba(255,255,255,.72);
-      border-radius: 22px;
+      z-index: 2;
+      inset: 0 0 auto;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 17px;
+      color: rgba(255,255,255,.86);
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(16, 18, 45, .18);
+      backdrop-filter: blur(18px);
+    }
+
+    .menu-bar .spacer { flex: 1; }
+    .menu-bar .brand { font-weight: 760; }
+
+    .document-window {
+      position: absolute;
+      z-index: 1;
+      left: 180px;
+      top: 88px;
+      width: 1044px;
+      height: 484px;
       overflow: hidden;
-      background: rgba(249,251,255,.76);
-      box-shadow:
-        0 34px 80px rgba(39,55,102,.22),
-        0 4px 18px rgba(39,55,102,.12);
-      backdrop-filter: blur(34px) saturate(130%);
+      border: 1px solid rgba(255,255,255,.58);
+      border-radius: 25px;
+      background: rgba(248,250,255,.84);
+      box-shadow: 0 30px 78px rgba(15, 20, 66, .28);
+      backdrop-filter: blur(32px) saturate(125%);
     }
 
-    .window.primary {
-      inset: 0 270px 40px 0;
-      transform: rotate(-1.1deg);
-    }
-
-    .window.secondary {
-      width: 470px;
-      height: 470px;
-      right: 0;
-      top: 96px;
-      transform: rotate(1.8deg);
-      background: rgba(245,247,255,.82);
-    }
-
-    .titlebar {
+    .window-titlebar {
       height: 52px;
       display: flex;
       align-items: center;
       gap: 9px;
       padding: 0 18px;
-      border-bottom: 1px solid rgba(35,47,77,.08);
-      background: rgba(255,255,255,.48);
+      border-bottom: 1px solid rgba(24,30,63,.08);
+      background: rgba(255,255,255,.5);
     }
 
     .traffic { width: 12px; height: 12px; border-radius: 50%; }
@@ -86,175 +153,473 @@
     .yellow { background: #ffbd44; }
     .green { background: #00ca4e; }
 
-    .title {
+    .window-name {
       margin-left: 12px;
+      color: rgba(18,22,39,.67);
       font-size: 14px;
-      font-weight: 650;
-      color: rgba(23,32,51,.72);
+      font-weight: 660;
     }
 
-    .document {
+    .document-layout {
       display: grid;
-      grid-template-columns: 210px 1fr;
+      grid-template-columns: 190px 1fr;
       height: calc(100% - 52px);
     }
 
     .sidebar {
       padding: 26px 18px;
-      border-right: 1px solid rgba(35,47,77,.08);
-      background: rgba(239,244,255,.56);
+      border-right: 1px solid rgba(24,30,63,.07);
+      background: rgba(225,233,255,.42);
     }
 
-    .side-label {
-      margin: 0 8px 12px;
-      color: rgba(23,32,51,.42);
+    .sidebar-label {
+      margin: 0 10px 13px;
+      color: rgba(20,26,54,.38);
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-row {
+      height: 38px;
+      margin-bottom: 5px;
+      padding: 10px 12px;
+      border-radius: 11px;
+      color: rgba(20,26,54,.52);
+      font-size: 13px;
+      font-weight: 590;
+    }
+
+    .sidebar-row.active {
+      color: #2c4dde;
+      background: rgba(71,100,255,.13);
+    }
+
+    .document-content {
+      padding: 49px 58px;
+    }
+
+    .document-kicker {
+      margin-bottom: 13px;
+      color: #5270ff;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 780;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .document-title {
+      margin: 0 0 23px;
+      max-width: 660px;
+      font-size: 48px;
+      line-height: 1.01;
+      letter-spacing: -.045em;
+    }
+
+    .document-copy {
+      width: 570px;
+      margin: 0 0 28px;
+      color: rgba(19,24,46,.55);
+      font-size: 17px;
+      line-height: 1.52;
+    }
+
+    .document-lines {
+      display: grid;
+      gap: 11px;
+      width: 520px;
+    }
+
+    .document-line {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(62,76,130,.1);
+    }
+
+    .document-line:nth-child(2) { width: 82%; }
+    .document-line:nth-child(3) { width: 67%; }
+
+    .panel-shot {
+      position: absolute;
+      z-index: 4;
+      left: 8px;
+      bottom: 8px;
+      width: calc(100% - 16px);
+      border-radius: 27px;
+      box-shadow:
+        0 -14px 46px rgba(17, 22, 65, .18),
+        0 16px 40px rgba(17, 22, 65, .18);
+    }
+
+    .camera {
+      position: absolute;
+      z-index: 5;
+      top: 7px;
+      left: 50%;
+      width: 86px;
+      height: 18px;
+      transform: translateX(-50%);
+      border-radius: 0 0 13px 13px;
+      background: #090a0e;
+    }
+
+    .stand-neck {
+      position: absolute;
+      left: 705px;
+      top: 861px;
+      width: 190px;
+      height: 83px;
+      background: linear-gradient(90deg, #c8c9d1, #f7f7fa 48%, #bfc0c8);
+      clip-path: polygon(18% 0, 82% 0, 90% 100%, 10% 100%);
+      filter: drop-shadow(0 12px 12px rgba(28,29,43,.12));
+    }
+
+    .stand-base {
+      position: absolute;
+      left: 548px;
+      top: 929px;
+      width: 504px;
+      height: 31px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #e9e9ee, #bfc0c8);
+      box-shadow: 0 16px 24px rgba(28,29,43,.13);
+    }
+
+    .search-artboard {
+      width: 1600px;
+      height: 900px;
+      padding: 24px;
+      background: #fff;
+    }
+
+    .feature-shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 54px;
+      background:
+        radial-gradient(circle at 28% 20%, rgba(255,255,255,.9), transparent 33%),
+        #efeff3;
+    }
+
+    .feature-copy {
+      position: absolute;
+      z-index: 3;
+      left: 112px;
+      top: 174px;
+      width: 560px;
+    }
+
+    .feature-kicker {
+      margin-bottom: 24px;
+      color: #5965e8;
+      font-size: 15px;
+      font-weight: 780;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .feature-title {
+      margin: 0;
+      font-size: 112px;
+      line-height: .91;
+      letter-spacing: -.065em;
+    }
+
+    .feature-description {
+      width: 470px;
+      margin: 34px 0 0;
+      color: rgba(16,17,22,.53);
+      font-size: 22px;
+      line-height: 1.42;
+    }
+
+    .search-scene {
+      position: absolute;
+      right: -34px;
+      top: 68px;
+      width: 800px;
+      height: 718px;
+      overflow: hidden;
+      border-radius: 54px 0 0 54px;
+      background:
+        radial-gradient(circle at 82% 20%, rgba(101,245,222,.78), transparent 30%),
+        radial-gradient(circle at 26% 76%, rgba(255,130,188,.68), transparent 32%),
+        linear-gradient(145deg, #3845c8 0%, #7356e7 48%, #2ba9c5 100%);
+      box-shadow: 0 36px 74px rgba(68,70,153,.2);
+    }
+
+    .search-scene::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background:
+        linear-gradient(120deg, rgba(255,255,255,.17), transparent 34%),
+        linear-gradient(180deg, transparent 65%, rgba(31,20,83,.17));
+      pointer-events: none;
+    }
+
+    .search-pill {
+      position: absolute;
+      z-index: 4;
+      left: 54px;
+      top: 128px;
+      width: 690px;
+      height: 76px;
+      overflow: hidden;
+      border: 5px solid #178cff;
+      border-radius: 999px;
+      background: rgba(255,255,255,.68);
+      box-shadow: 0 18px 44px rgba(30,23,99,.22);
+      backdrop-filter: blur(28px) saturate(130%);
+    }
+
+    .search-pill::before {
+      position: absolute;
+      left: 28px;
+      top: 20px;
+      width: 27px;
+      height: 27px;
+      content: "";
+      border: 4px solid rgba(21,26,42,.65);
+      border-radius: 50%;
+    }
+
+    .search-pill::after {
+      position: absolute;
+      left: 52px;
+      top: 45px;
+      width: 14px;
+      height: 4px;
+      content: "";
+      transform: rotate(45deg);
+      border-radius: 4px;
+      background: rgba(21,26,42,.65);
+    }
+
+    .query-text {
+      position: absolute;
+      left: 86px;
+      top: 17px;
+      font-size: 29px;
+      font-weight: 540;
+      letter-spacing: -.02em;
+    }
+
+    .query-cursor {
+      display: inline-block;
+      width: 3px;
+      height: 34px;
+      margin-left: 5px;
+      vertical-align: -6px;
+      border-radius: 3px;
+      background: #178cff;
+    }
+
+    .filter-symbol {
+      position: absolute;
+      right: 25px;
+      top: 23px;
+      display: grid;
+      gap: 6px;
+      width: 29px;
+    }
+
+    .filter-symbol span {
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(21,26,42,.63);
+    }
+
+    .filter-symbol span:nth-child(2) { width: 21px; margin-left: 8px; }
+
+    .result-card {
+      position: absolute;
+      z-index: 3;
+      left: 72px;
+      top: 283px;
+      width: 320px;
+      height: 356px;
+      overflow: hidden;
+      border-radius: 29px;
+      box-shadow: 0 27px 56px rgba(31,22,90,.28);
+    }
+
+    .result-card img {
+      position: absolute;
+      left: -18px;
+      top: -68px;
+      width: 1320px;
+      max-width: none;
+    }
+
+    .filter-popover {
+      position: absolute;
+      z-index: 5;
+      right: 46px;
+      top: 275px;
+      width: 392px;
+      min-height: 376px;
+      padding: 25px 25px 21px;
+      border: 1px solid rgba(255,255,255,.62);
+      border-radius: 37px;
+      background: rgba(250,248,246,.86);
+      box-shadow: 0 30px 70px rgba(38,25,92,.29);
+      backdrop-filter: blur(34px) saturate(125%);
+    }
+
+    .popover-label {
+      margin: 0 0 12px 10px;
+      color: rgba(20,22,35,.42);
+      font-size: 12px;
+      font-weight: 760;
       letter-spacing: .08em;
       text-transform: uppercase;
     }
 
-    .nav {
-      padding: 10px 12px;
-      border-radius: 11px;
-      margin-bottom: 5px;
-      font-size: 13px;
-      font-weight: 560;
-      color: rgba(23,32,51,.62);
-    }
-
-    .nav.active {
-      color: #264ecf;
-      background: rgba(68,111,255,.13);
-    }
-
-    .page { padding: 54px 60px; }
-
-    .eyebrow {
-      margin-bottom: 12px;
-      color: #3765ef;
-      font-size: 12px;
-      font-weight: 750;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      max-width: 700px;
-      margin: 0;
-      font-size: clamp(42px, 4vw, 72px);
-      line-height: .98;
-      letter-spacing: -.055em;
-    }
-
-    .lead {
-      max-width: 620px;
-      margin: 24px 0 34px;
-      color: rgba(23,32,51,.58);
-      font-size: 18px;
-      line-height: 1.55;
-    }
-
-    .chips { display: flex; gap: 10px; flex-wrap: wrap; }
-
-    .chip {
-      padding: 10px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 650;
-      background: rgba(255,255,255,.72);
-      border: 1px solid rgba(255,255,255,.9);
-      box-shadow: 0 6px 18px rgba(37,58,114,.08);
-    }
-
-    .gallery {
+    .filter-row {
+      height: 63px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      padding: 20px;
-    }
-
-    .tile {
-      min-height: 160px;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      padding: 0 11px;
       border-radius: 17px;
-      padding: 18px;
+      color: rgba(16,18,30,.82);
+      font-size: 22px;
+      font-weight: 550;
+    }
+
+    .filter-row + .filter-row { margin-top: 3px; }
+
+    .filter-row.active {
       color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.26);
+      background: #178cff;
+      box-shadow: 0 8px 20px rgba(23,140,255,.27);
     }
 
-    .tile:nth-child(1) { background: linear-gradient(145deg, #ff6c55, #ffb04f); }
-    .tile:nth-child(2) { background: linear-gradient(145deg, #5076ff, #8d61ef); }
-    .tile:nth-child(3) { background: linear-gradient(145deg, #16a9a0, #5bd47e); }
-    .tile:nth-child(4) { background: linear-gradient(145deg, #27334f, #536487); }
-
-    .tile small { opacity: .7; font-weight: 650; }
-    .tile strong { font-size: 22px; letter-spacing: -.02em; }
-
-    .hint {
-      position: fixed;
-      left: 50%;
-      bottom: 336px;
-      transform: translateX(-50%);
-      color: rgba(23,32,51,.42);
-      font-size: 12px;
-      font-weight: 650;
-      letter-spacing: .04em;
+    .filter-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      font-size: 16px;
+      font-weight: 760;
+      background: rgba(34,40,68,.1);
     }
+
+    .filter-row.active .filter-icon { background: rgba(255,255,255,.22); }
+
+    .filter-meta {
+      color: rgba(16,18,30,.38);
+      font-size: 16px;
+      font-weight: 540;
+    }
+
+    .filter-row.active .filter-meta { color: rgba(255,255,255,.7); }
   </style>
 </head>
 <body>
-  <main class="desktop">
-    <div class="ambient"></div>
-    <section class="workspace">
-      <article class="window primary">
-        <div class="titlebar">
-          <span class="traffic red"></span>
-          <span class="traffic yellow"></span>
-          <span class="traffic green"></span>
-          <span class="title">Product launch brief</span>
+  <section class="artboard hero-artboard">
+    <div class="monitor">
+      <div class="screen">
+        <div class="camera"></div>
+        <div class="menu-bar">
+          <span class="brand">Passst</span>
+          <span>File</span>
+          <span>Edit</span>
+          <span>View</span>
+          <span class="spacer"></span>
+          <span>⌘ ⇧ V</span>
+          <span>11:42</span>
         </div>
-        <div class="document">
-          <aside class="sidebar">
-            <p class="side-label">Workspace</p>
-            <div class="nav active">Launch brief</div>
-            <div class="nav">Research notes</div>
-            <div class="nav">Useful links</div>
-            <div class="nav">Release copy</div>
-          </aside>
-          <div class="page">
-            <div class="eyebrow">Ready for launch</div>
-            <h1>Everything you copied, one shortcut away.</h1>
-            <p class="lead">
-              Keep the text, links, images, and files you use while moving between
-              research, design, and writing.
-            </p>
-            <div class="chips">
-              <span class="chip">Search instantly</span>
-              <span class="chip">Preview anything</span>
-              <span class="chip">Drag and drop</span>
-            </div>
+        <article class="document-window">
+          <div class="window-titlebar">
+            <span class="traffic red"></span>
+            <span class="traffic yellow"></span>
+            <span class="traffic green"></span>
+            <span class="window-name">Project notes</span>
+          </div>
+          <div class="document-layout">
+            <aside class="sidebar">
+              <p class="sidebar-label">Workspace</p>
+              <div class="sidebar-row active">Launch plan</div>
+              <div class="sidebar-row">Research</div>
+              <div class="sidebar-row">References</div>
+              <div class="sidebar-row">Archive</div>
+            </aside>
+            <main class="document-content">
+              <div class="document-kicker">Today</div>
+              <h1 class="document-title">Everything you copied, ready when you need it.</h1>
+              <p class="document-copy">
+                Keep useful text, links, images, and files close while moving between
+                the apps where real work happens.
+              </p>
+              <div class="document-lines">
+                <span class="document-line"></span>
+                <span class="document-line"></span>
+                <span class="document-line"></span>
+              </div>
+            </main>
+          </div>
+        </article>
+        <img class="panel-shot" src="assets/panel-light-glass.png" alt="">
+      </div>
+    </div>
+    <div class="stand-neck"></div>
+    <div class="stand-base"></div>
+  </section>
+
+  <section class="artboard search-artboard">
+    <div class="feature-shell">
+      <div class="feature-copy">
+        <div class="feature-kicker">Smart filters</div>
+        <h2 class="feature-title">Find it.<br>Instantly.</h2>
+        <p class="feature-description">
+          Search the words you remember, then narrow the result by type, app, date,
+          or Pinboard.
+        </p>
+      </div>
+      <div class="search-scene">
+        <div class="search-pill">
+          <span class="query-text">swiftui<span class="query-cursor"></span></span>
+          <span class="filter-symbol"><span></span><span></span></span>
+        </div>
+        <div class="result-card">
+          <img src="assets/search.jpg" alt="">
+        </div>
+        <div class="filter-popover">
+          <p class="popover-label">Narrow results</p>
+          <div class="filter-row">
+            <span class="filter-icon">↗</span>
+            <span>Links</span>
+            <span class="filter-meta">Type</span>
+          </div>
+          <div class="filter-row active">
+            <span class="filter-icon">S</span>
+            <span>Safari</span>
+            <span class="filter-meta">App</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-icon">7</span>
+            <span>Last week</span>
+            <span class="filter-meta">Date</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-icon">●</span>
+            <span>Useful Links</span>
+            <span class="filter-meta">Pinboard</span>
           </div>
         </div>
-      </article>
-      <aside class="window secondary">
-        <div class="titlebar">
-          <span class="traffic red"></span>
-          <span class="traffic yellow"></span>
-          <span class="traffic green"></span>
-          <span class="title">Launch assets</span>
-        </div>
-        <div class="gallery">
-          <div class="tile"><small>Image</small><strong>Campaign</strong></div>
-          <div class="tile"><small>Code</small><strong>Components</strong></div>
-          <div class="tile"><small>Link</small><strong>References</strong></div>
-          <div class="tile"><small>Files</small><strong>Exports</strong></div>
-        </div>
-      </aside>
-    </section>
-    <div class="hint">PRESS SHIFT–COMMAND–V FROM ANY APP</div>
-  </main>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const shot = new URLSearchParams(location.search).get("shot") || "hero";
+    document.body.dataset.shot = shot;
+  </script>
 </body>
 </html>

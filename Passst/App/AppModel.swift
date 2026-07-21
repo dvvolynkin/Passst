@@ -5,6 +5,11 @@ import Observation
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct HistoryScrollRequest: Equatable {
+    let targetID: UUID
+    let generation: Int
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -17,6 +22,7 @@ final class AppModel {
     private(set) var accessibilityGranted = false
     private(set) var mediaRefreshGeneration = 0
     private(set) var availableSourceApplications: [ClipboardSourceFilter] = []
+    private(set) var instantHistoryScrollRequest: HistoryScrollRequest?
 
     var searchQuery = "" {
         didSet {
@@ -77,6 +83,10 @@ final class AppModel {
     private var searchTask: Task<Void, Never>?
     private var noticeTask: Task<Void, Never>?
     private var activeLoadGeneration = 0
+    @ObservationIgnored
+    private var pendingHistoryRevealID: UUID?
+    @ObservationIgnored
+    private var historyScrollRequestGeneration = 0
     private var didStart = false
     private var didRegisterGlobalShortcut = false
     @ObservationIgnored
@@ -150,9 +160,26 @@ final class AppModel {
 
     func presentPanel() {
         guard !panelController.isPresented else { return }
-        selection.reset(records: records, preservingSelection: false)
+        if let pendingHistoryRevealID,
+           records.contains(where: { $0.id == pendingHistoryRevealID }) {
+            historyScrollRequestGeneration += 1
+            instantHistoryScrollRequest = HistoryScrollRequest(
+                targetID: pendingHistoryRevealID,
+                generation: historyScrollRequestGeneration
+            )
+            selection.select(id: pendingHistoryRevealID, records: records)
+        } else {
+            instantHistoryScrollRequest = nil
+            selection.reset(records: records)
+        }
+        pendingHistoryRevealID = nil
         panelController.present()
-        reloadHistory(reset: true, animated: false)
+    }
+
+    func shouldAnimateHistoryScroll(to id: UUID) -> Bool {
+        guard instantHistoryScrollRequest?.targetID != id else { return false }
+        instantHistoryScrollRequest = nil
+        return true
     }
 
     func closePanel() {
@@ -590,6 +617,7 @@ final class AppModel {
         if sourceApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
             return
         }
+        ClipboardFeedbackPlayer.shared.playCopy()
         Task {
             do {
                 let storedPayload = await WebImageMaterializer.materialize(payload)
@@ -611,6 +639,7 @@ final class AppModel {
                         records.insert(saved, at: 0)
                         selection.reset(records: records)
                     }
+                    pendingHistoryRevealID = saved.id
                 } else {
                     reloadHistory(reset: true)
                 }
@@ -737,11 +766,11 @@ final class AppModel {
                 )
                 let changeCount = try codec.write(payload)
                 clipboardMonitor.suppress(changeCount: changeCount)
-                CopyFeedbackPlayer.shared.play()
 
                 if directPaste {
                     refreshAccessibilityStatus()
                     if !accessibilityGranted {
+                        ClipboardFeedbackPlayer.shared.playCopy()
                         _ = requestAccessibilityAccess()
                         showNotice(
                             "Copied. Allow Accessibility, then press Enter again — or use Command+V.",
@@ -758,12 +787,14 @@ final class AppModel {
                         Task {
                             do {
                                 try await self.directPasteService.paste(into: target)
+                                ClipboardFeedbackPlayer.shared.playPaste()
                             } catch {
                                 self.show(error: error)
                             }
                         }
                     }
                 } else {
+                    ClipboardFeedbackPlayer.shared.playCopy()
                     panelController.close()
                 }
             } catch {

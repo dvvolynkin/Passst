@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.4-macos-universal.dmg"><strong>Download for macOS</strong></a>
+  <a href="https://github.com/dvvolynkin/Passst/releases/latest/download/Passst-0.2.5-macos-universal.dmg"><strong>Download for macOS</strong></a>
   ·
   <a href="#quick-start">Quick start</a>
   ·
@@ -32,7 +32,7 @@ display, with the latest clipboard item already selected and ready to copy or pa
 
 ## Quick start
 
-1. Download **Passst 0.2.4** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
+1. Download **Passst 0.2.5** from the [latest release](https://github.com/dvvolynkin/Passst/releases/latest).
 2. Open the DMG and drag Passst to **Applications**.
 3. Passst is ad-hoc signed but not notarized. Control-click Passst and choose
    **Open**. If macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
@@ -201,7 +201,7 @@ swift test
 To create the Universal 2 application, DMG, ZIP, and checksums:
 
 ```sh
-scripts/package-app.sh release 0.2.4 10
+scripts/package-app.sh release 0.2.5 11
 ```
 
 The repository contains both `Package.swift` and `project.yml`. GRDB provides SQLite and

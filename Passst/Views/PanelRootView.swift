@@ -136,14 +136,30 @@ struct PanelRootView: View {
                 .padding(.bottom, PassstStyle.historyBottomPadding)
             }
             .scrollIndicators(.hidden)
+            .onChange(of: model.instantHistoryScrollRequest) { _, request in
+                guard let request else { return }
+                scrollImmediately(to: request.targetID, using: proxy)
+            }
             .onChange(of: model.selection.focusedID) { _, focusedID in
                 guard let focusedID else { return }
+                guard model.shouldAnimateHistoryScroll(to: focusedID) else {
+                    scrollImmediately(to: focusedID, using: proxy)
+                    return
+                }
                 withAnimation(
                     model.reduceMotion ? .easeOut(duration: 0.1) : .smooth(duration: 0.16)
                 ) {
                     proxy.scrollTo(focusedID)
                 }
             }
+        }
+    }
+
+    private func scrollImmediately(to id: UUID, using proxy: ScrollViewProxy) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            proxy.scrollTo(id, anchor: .leading)
         }
     }
 

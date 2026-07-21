@@ -1,14 +1,14 @@
-## Passst 0.2.4
+## Passst 0.2.5
 
-A focused toolbar and icon polish for Passst, the local-first clipboard history for macOS.
+Clearer clipboard feedback and calmer history reopening for Passst, the local-first clipboard history for macOS.
 
 ### Highlights
 
-- A calmer three-zone toolbar with consistent spacing
-- Tag creation integrated into the tag rail instead of a separate control
-- Search keeps its familiar magnifying-glass cue while More stays in the far corner
-- A new passing-card app icon and matching monochrome menu-bar mark
-- Refreshed light, dark, and desktop screenshots
+- Audible confirmation when a new item is captured into clipboard history
+- A quieter, distinct sound after a successful direct paste
+- Clipboard sound effects can be disabled with one setting
+- Scroll position and selection are preserved when reopening without new items
+- Newly captured items appear immediately on reopen without a visible scroll animation
 
 ### Requirements
 

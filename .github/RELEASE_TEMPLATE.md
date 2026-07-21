@@ -9,6 +9,7 @@ Clearer clipboard feedback and calmer history reopening for Passst, the local-fi
 - Clipboard sound effects can be disabled with one setting
 - Scroll position and selection are preserved when reopening without new items
 - Newly captured items appear immediately on reopen without a visible scroll animation
+- The menu bar menu now shows the installed version and build number
 
 ### Requirements
 

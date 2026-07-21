@@ -39,13 +39,10 @@ struct PassstApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Passst") {
-                    let version = Bundle.main.object(
-                        forInfoDictionaryKey: "CFBundleShortVersionString"
-                    ) as? String ?? "0.2.2"
                     NSApp.orderFrontStandardAboutPanel(
                         options: [
                             .applicationName: "Passst",
-                            .applicationVersion: version
+                            .applicationVersion: AppMetadata.version
                         ]
                     )
                 }
@@ -100,9 +97,26 @@ private struct MenuBarContentView: View {
 
         Divider()
 
+        Text(AppMetadata.menuVersion)
+
         Button("Quit Passst") {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+}
+
+private enum AppMetadata {
+    static let version = Bundle.main.object(
+        forInfoDictionaryKey: "CFBundleShortVersionString"
+    ) as? String ?? "Development"
+
+    static let build = Bundle.main.object(
+        forInfoDictionaryKey: "CFBundleVersion"
+    ) as? String
+
+    static var menuVersion: String {
+        guard let build, !build.isEmpty else { return "Passst \(version)" }
+        return "Passst \(version) (\(build))"
     }
 }

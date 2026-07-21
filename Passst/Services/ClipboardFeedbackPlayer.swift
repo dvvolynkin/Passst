@@ -5,8 +5,15 @@ import Foundation
 final class ClipboardFeedbackPlayer {
     static let shared = ClipboardFeedbackPlayer()
 
-    private lazy var copyPlayer = makePlayer(named: "Pop", volume: 0.65)
-    private lazy var pastePlayer = makePlayer(named: "Tink", volume: 0.35)
+    private lazy var copyPlayer = makePlayer(
+        url: Bundle.main.url(forResource: "ClipboardCopy", withExtension: "wav")
+            ?? systemSoundURL(named: "Pop"),
+        volume: 0.8
+    )
+    private lazy var pastePlayer = makePlayer(
+        url: systemSoundURL(named: "Tink"),
+        volume: 0.35
+    )
 
     private init() {}
 
@@ -18,12 +25,15 @@ final class ClipboardFeedbackPlayer {
         play(pastePlayer)
     }
 
-    private func makePlayer(named name: String, volume: Float) -> AVAudioPlayer? {
-        let systemSoundURL = URL(
+    private func systemSoundURL(named name: String) -> URL {
+        URL(
             fileURLWithPath: "/System/Library/Sounds/\(name).aiff",
             isDirectory: false
         )
-        guard let player = try? AVAudioPlayer(contentsOf: systemSoundURL) else {
+    }
+
+    private func makePlayer(url: URL, volume: Float) -> AVAudioPlayer? {
+        guard let player = try? AVAudioPlayer(contentsOf: url) else {
             return nil
         }
         player.volume = volume

@@ -4,7 +4,7 @@ Clearer clipboard feedback and calmer history reopening for Passst, the local-fi
 
 ### Highlights
 
-- Audible confirmation when a new item is captured into clipboard history
+- A custom tactile click when a new item is captured into clipboard history
 - A quieter, distinct sound after a successful direct paste
 - Clipboard sound effects can be disabled with one setting
 - Scroll position and selection are preserved when reopening without new items

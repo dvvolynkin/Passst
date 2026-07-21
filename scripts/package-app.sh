@@ -53,6 +53,7 @@ lipo \
 cp "$ROOT_DIR/Passst/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Passst/Resources/Passst.icns" "$RESOURCES_DIR/Passst.icns"
 cp "$ROOT_DIR/Passst/Resources/PassstMenuBarTemplate.png" "$RESOURCES_DIR/PassstMenuBarTemplate.png"
+cp "$ROOT_DIR/Passst/Resources/ClipboardCopy.wav" "$RESOURCES_DIR/ClipboardCopy.wav"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable Passst" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier app.passst.mac" "$CONTENTS_DIR/Info.plist"
